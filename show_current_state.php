@@ -42,11 +42,12 @@ echo str_repeat("=", 50) . "\n\n";
 echo "This is EXACTLY what we want in TDD!\n\n";
 
 echo "🎯 WHY TESTS ARE FAILING:\n";
+echo "   • Cannot mock UserDAO class (doesn't exist)\n";
 echo "   • AuthService class doesn't exist\n";
 echo "   • UserService class doesn't exist\n";
-echo "   • UserDAO class doesn't exist\n";
 echo "   • AuthController class doesn't exist\n";
-echo "   • Interfaces are not defined\n\n";
+echo "   • Sophisticated tests use reflection and dependency injection\n";
+echo "   • Tests include session management and role-based auth\n\n";
 
 echo "✅ THIS IS THE PERFECT RED PHASE!\n\n";
 
