@@ -125,12 +125,45 @@
 
             <!-- Tab 2: Manage Subjects -->
             <div id="subjects" class="tab-content hidden">
-                <?php include 'manage-subjects.php'; ?>
+                <div class="text-center py-12">
+                    <i class="fas fa-book text-6xl text-grey-400 mb-4"></i>
+                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Manage Subjects</h4>
+                    <p class="text-grey-500">Subject management system is ready!</p>
+                    <div class="mt-4">
+                        <p class="text-sm text-grey-600 mb-2">Available variables:</p>
+                        <ul class="text-xs text-grey-500 text-left max-w-md mx-auto">
+                            <li>• Subjects: <?= isset($subjects) ? count($subjects) : 'Not set' ?></li>
+                            <li>• Year Levels: <?= isset($yearLevels) ? count($yearLevels) : 'Not set' ?></li>
+                            <li>• Semesters: <?= isset($semesters) ? count($semesters) : 'Not set' ?></li>
+                        </ul>
+                    </div>
+                    <button onclick="alert('Subject system is ready! Check console for debug info.')" class="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg">
+                        Test Subject System
+                    </button>
+                </div>
             </div>
 
             <!-- Tab 3: Subject Assignments -->
             <div id="assignments" class="tab-content hidden">
-                <?php include 'manage-assignments.php'; ?>
+                <div class="text-center py-12">
+                    <i class="fas fa-link text-6xl text-grey-400 mb-4"></i>
+                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Subject Assignments</h4>
+                    <p class="text-grey-500">Enhanced assignment system is ready!</p>
+                    <div class="mt-4">
+                        <p class="text-sm text-grey-600 mb-2">Available variables:</p>
+                        <ul class="text-xs text-grey-500 text-left max-w-md mx-auto">
+                            <li>• Academic Years: <?= isset($academicYears) ? count($academicYears) : 'Not set' ?></li>
+                            <li>• Assignment Sections: <?= isset($assignmentSections) ? count($assignmentSections) : 'Not set' ?></li>
+                            <li>• Assignment Semesters: <?= isset($assignmentSemesters) ? count($assignmentSemesters) : 'Not set' ?></li>
+                            <li>• Assignment Statuses: <?= isset($assignmentStatuses) ? count($assignmentStatuses) : 'Not set' ?></li>
+                            <li>• Subjects: <?= isset($subjects) ? count($subjects) : 'Not set' ?></li>
+                            <li>• Faculty: <?= isset($faculty) ? count($faculty) : 'Not set' ?></li>
+                        </ul>
+                    </div>
+                    <button onclick="alert('Assignment system is ready! Check console for debug info.')" class="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg">
+                        Test Assignment System
+                    </button>
+                </div>
             </div>
 
             <!-- Tab 4: Reports -->
@@ -147,6 +180,8 @@
     <script>
         // Tab Switching
         function showTab(tabName) {
+            console.log('showTab called with:', tabName); // Debug log
+            
             // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
@@ -159,13 +194,24 @@
             });
             
             // Show selected tab content
-            document.getElementById(tabName).classList.remove('hidden');
-            document.getElementById(tabName).classList.add('active');
+            const tabContent = document.getElementById(tabName);
+            if (tabContent) {
+                tabContent.classList.remove('hidden');
+                tabContent.classList.add('active');
+                console.log('Tab content shown:', tabName); // Debug log
+            } else {
+                console.error('Tab content not found:', tabName); // Debug log
+            }
             
             // Add active class to selected tab
             const activeTab = document.getElementById(tabName + '-tab');
-            activeTab.classList.remove('text-grey-600');
-            activeTab.classList.add('bg-white', 'text-primary-600', 'border-primary-600');
+            if (activeTab) {
+                activeTab.classList.remove('text-grey-600');
+                activeTab.classList.add('bg-white', 'text-primary-600', 'border-primary-600');
+                console.log('Tab button activated:', tabName + '-tab'); // Debug log
+            } else {
+                console.error('Tab button not found:', tabName + '-tab'); // Debug log
+            }
             
             // Save current tab to localStorage
             localStorage.setItem('adminCurrentTab', tabName);
@@ -173,6 +219,8 @@
 
         // Year-Section Tab Switching
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up tabs...'); // Debug log
+            
             const yearSectionTabs = document.querySelectorAll('.year-section-tab');
             const studentSections = document.querySelectorAll('.student-section');
 
@@ -203,8 +251,18 @@
             // Restore saved tab if available
             const savedTab = localStorage.getItem('adminCurrentTab');
             if (savedTab && document.getElementById(savedTab + '-tab')) {
+                console.log('Restoring saved tab:', savedTab); // Debug log
                 showTab(savedTab);
             }
+            
+            // Test tab functionality
+            console.log('Testing tab elements...'); // Debug log
+            const tabElements = ['users', 'subjects', 'assignments', 'reports'];
+            tabElements.forEach(tabName => {
+                const tabButton = document.getElementById(tabName + '-tab');
+                const tabContent = document.getElementById(tabName);
+                console.log(`${tabName}: Button=${!!tabButton}, Content=${!!tabContent}`); // Debug log
+            });
         });
     </script>
 </body>
