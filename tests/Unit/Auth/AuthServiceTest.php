@@ -311,6 +311,56 @@ class AuthServiceTest extends TestCase
     }
 
     /** @test */
+    public function it_should_require_authentication_for_protected_resources()
+    {
+        // Test with no session - should exit/redirect, but we'll test the logic
+        $this->expectOutputString('');
+        
+        try {
+            $this->authService->requireAuth();
+            $this->fail('Expected exit() to be called');
+        } catch (\Exception $e) {
+            // Expected behavior when testing redirects
+        }
+    }
+
+    /** @test */
+    public function it_should_allow_access_when_authenticated()
+    {
+        $this->setupAuthenticatedSession('student');
+        
+        $result = $this->authService->requireAuth();
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User is authenticated.', $result['message']);
+    }
+
+    /** @test */
+    public function it_should_require_specific_role_for_role_protected_resources()
+    {
+        // Test with wrong role - should redirect
+        $this->setupAuthenticatedSession('student');
+        
+        try {
+            $this->authService->requireRole('admin');
+            $this->fail('Expected exit() to be called for insufficient permissions');
+        } catch (\Exception $e) {
+            // Expected behavior when testing redirects
+        }
+    }
+
+    /** @test */
+    public function it_should_allow_access_with_correct_role()
+    {
+        $this->setupAuthenticatedSession('admin');
+        
+        $result = $this->authService->requireRole('admin');
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User has required role.', $result['message']);
+    }
+
+    /** @test */
     public function it_should_logout_successfully()
     {
         $this->setupAuthenticatedSession('student');

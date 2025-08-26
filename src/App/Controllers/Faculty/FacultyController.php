@@ -10,10 +10,12 @@ class FacultyController
     private AuthService $authService;
     private View $view;
 
-    public function __construct()
-    {
-        $this->authService = new AuthService();
-        $this->view = new View();
+    public function __construct(
+        AuthService $authService = null,
+        View $view = null
+    ) {
+        $this->authService = $authService ?? new AuthService();
+        $this->view = $view ?? new View();
 
         // Enforce authentication and role
         $this->authService->requireAuth();

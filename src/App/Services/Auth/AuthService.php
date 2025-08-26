@@ -213,6 +213,58 @@ class AuthService
     }
 
     /**
+     * Require authentication for protected resources
+     */
+    public function requireAuth()
+    {
+        if (!$this->isAuthenticated()) {
+            // Redirect to login page
+            $scriptName = $_SERVER['SCRIPT_NAME'];
+            $basePath = dirname($scriptName);
+            header('Location: ' . $basePath . '/login');
+            exit;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'User is authenticated.'
+        ];
+    }
+
+    /**
+     * Require specific role for role-protected resources
+     */
+    public function requireRole($requiredRole)
+    {
+        $authResult = $this->requireAuth();
+        if (!$authResult['success']) {
+            return $authResult;
+        }
+
+        $user = $this->getCurrentUser();
+        if (!$user || !isset($user['role'])) {
+            // Redirect to login page
+            $scriptName = $_SERVER['SCRIPT_NAME'];
+            $basePath = dirname($scriptName);
+            header('Location: ' . $basePath . '/login');
+            exit;
+        }
+        
+        if ($user['role'] !== $requiredRole) {
+            // Redirect to login page (insufficient permissions)
+            $scriptName = $_SERVER['SCRIPT_NAME'];
+            $basePath = dirname($scriptName);
+            header('Location: ' . $basePath . '/login');
+            exit;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'User has required role.'
+        ];
+    }
+
+    /**
      * Logout user
      */
     public function logout()

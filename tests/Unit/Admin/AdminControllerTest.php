@@ -35,23 +35,22 @@ class AdminControllerTest extends TestCase
         $this->userServiceMock = $this->createMock(UserService::class);
         $this->viewMock = $this->createMock(View::class);
         
-        // Create AdminController instance
-        $this->adminController = new AdminController();
+        // Mock the auth methods that are called in constructor
+        $this->authServiceMock
+            ->method('requireAuth')
+            ->willReturn(['success' => true, 'message' => 'Authenticated']);
         
-        // Use reflection to inject mocks
-        $reflection = new ReflectionClass($this->adminController);
+        $this->authServiceMock
+            ->method('requireRole')
+            ->with('admin')
+            ->willReturn(['success' => true, 'message' => 'Has admin role']);
         
-        $authServiceProperty = $reflection->getProperty('authService');
-        $authServiceProperty->setAccessible(true);
-        $authServiceProperty->setValue($this->adminController, $this->authServiceMock);
-        
-        $userServiceProperty = $reflection->getProperty('userService');
-        $userServiceProperty->setAccessible(true);
-        $userServiceProperty->setValue($this->adminController, $this->userServiceMock);
-        
-        $viewProperty = $reflection->getProperty('view');
-        $viewProperty->setAccessible(true);
-        $viewProperty->setValue($this->adminController, $this->viewMock);
+        // Create AdminController instance with mocked dependencies
+        $this->adminController = new AdminController(
+            $this->authServiceMock,
+            $this->userServiceMock,
+            $this->viewMock
+        );
         
         // Reset superglobals for clean test state
         $_SESSION = [];

@@ -12,11 +12,14 @@ class AdminController
     private $userService;
     private $view;
 
-    public function __construct()
-    {
-        $this->authService = new AuthService();
-        $this->userService = new UserService();
-        $this->view = new View();
+    public function __construct(
+        AuthService $authService = null,
+        UserService $userService = null,
+        View $view = null
+    ) {
+        $this->authService = $authService ?? new AuthService();
+        $this->userService = $userService ?? new UserService();
+        $this->view = $view ?? new View();
         
         // Ensure user is authenticated and is admin
         $this->authService->requireAuth();
@@ -53,21 +56,53 @@ class AdminController
      */
     public function logout()
     {
-        // Check if user confirmed logout
         if (isset($_GET['confirm']) && $_GET['confirm'] === 'true') {
             $this->authService->logout();
             
-            // Get the base path for correct redirect
             $scriptName = $_SERVER['SCRIPT_NAME'];
             $basePath = dirname($scriptName);
-            $loginUrl = $basePath . '/login';
-            
-            header('Location: ' . $loginUrl);
+            header('Location: ' . $basePath . '/login');
             return;
-        } else {
-            // Show confirmation page
-            $this->showLogoutConfirmation();
         }
+
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $basePath = dirname($scriptName);
+        $logoutUrl = $basePath . '/admin/logout?confirm=true';
+        $dashboardUrl = $basePath . '/admin/dashboard';
+
+        echo '<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Confirm Logout - Admin Panel</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <div class="container mt-5">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card shadow">
+                            <div class="card-body text-center">
+                                <i class="fas fa-sign-out-alt fa-3x text-warning mb-3"></i>
+                                <h4 class="card-title">Confirm Logout</h4>
+                                <p class="card-text">Are you sure you want to logout from the admin panel?</p>
+                                <div class="d-flex justify-content-center gap-3">
+                                    <a href="' . $logoutUrl . '" class="btn btn-danger">
+                                        <i class="fas fa-check mr-2"></i>Yes, Logout
+                                    </a>
+                                    <a href="' . $dashboardUrl . '" class="btn btn-secondary">
+                                        <i class="fas fa-times mr-2"></i>Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>';
     }
 
     /**
