@@ -522,3 +522,150 @@ Run unit tests:
 Notes:
 - Use PHPUnit mocks for DAOs to isolate Service logic.
 - For redirect/exit flows, unit tests should assert behavior via try/catch or by extracting pure helpers for redirect target computation.
+
+---
+
+### Current Implementation by Folder (citations)
+
+- `src/App/Controllers/Admin/AdminController.php`
+```1:40:/workspace/src/App/Controllers/Admin/AdminController.php
+<?php
+// ...
+```
+
+- `src/App/Controllers/Auth/AuthController.php`
+```1:60:/workspace/src/App/Controllers/Auth/AuthController.php
+<?php
+
+namespace App\Controllers\Auth;
+
+use App\Services\Auth\AuthService;
+use App\Core\View;
+
+class AuthController
+{
+    private $authService;
+    private $view;
+
+    public function __construct()
+    {
+        $this->authService = new AuthService();
+        $this->view = new View();
+    }
+
+    public function showLogin()
+    {
+        if ($this->authService->isAuthenticated()) {
+            $user = $this->authService->getCurrentUser();
+            $role = $user['role'] ?? null;
+            if (!in_array($role, ['admin', 'faculty', 'student'], true)) {
+                $this->authService->logout();
+                $this->view->display('auth.login', ['error' => 'Your session role is invalid. Please log in again.']);
+                return;
+            }
+            $this->redirectToDashboard($role);
+            return;
+        }
+        $this->view->display('auth.login');
+    }
+```
+
+- `src/App/Services/Auth/AuthService.php`
+```1:60:/workspace/src/App/Services/Auth/AuthService.php
+<?php
+
+namespace App\Services\Auth;
+
+use App\DAO\Auth\UserDAO;
+use App\Models\User;
+
+class AuthService
+{
+    private $userDAO;
+
+    public function __construct(UserDAO $userDAO = null)
+    {
+        $this->userDAO = $userDAO ?? new UserDAO();
+    }
+
+    public function login($school_id, $password)
+    {
+        if (empty(trim($school_id)) || empty(trim($password))) {
+            return ['success' => false, 'message' => 'School ID and password are required.'];
+        }
+        $school_id = trim($school_id);
+        $password = trim($password);
+        $user = $this->userDAO->authenticate($school_id, $password);
+        if (!$user) {
+            return ['success' => false, 'message' => 'User not found.'];
+        }
+        if (!$user->verifyPassword($password)) {
+            return ['success' => false, 'message' => 'Invalid School ID or password.'];
+        }
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $_SESSION['user_id'] = $user->getUserId();
+        $_SESSION['school_id'] = $user->getSchoolId();
+        $_SESSION['full_name'] = $user->getFullName();
+        $_SESSION['role'] = $user->getRole();
+        $_SESSION['year_level'] = $user->getYearLevel();
+        $_SESSION['section'] = $user->getSection();
+        return ['success' => true, 'message' => 'Login successful!', 'user' => $user->toArray()];
+    }
+```
+
+- `src/App/DAO/Auth/UserDAO.php`
+```1:28:/workspace/src/App/DAO/Auth/UserDAO.php
+<?php
+
+namespace App\DAO\Auth;
+
+use App\Config\Database;
+use App\Interfaces\UserDAOInterface;
+use App\Models\User;
+use PDO;
+use PDOException;
+
+class UserDAO implements UserDAOInterface
+{
+    private $db;
+    private $table = 'users';
+
+    public function __construct()
+    {
+        $this->db = Database::getInstance()->getConnection();
+    }
+```
+
+- `src/App/Models/User.php` (verifyPassword)
+```96:116:/workspace/src/App/Models/User.php
+    /**
+     * Verify password
+     */
+    public function verifyPassword(string $inputPassword): bool
+    {
+        if (empty($this->password)) {
+            return false;
+        }
+        if (strpos($this->password, '$') === 0) {
+            return password_verify($inputPassword, $this->password);
+        } else {
+            return $inputPassword === $this->password;
+        }
+    }
+```
+
+- `src/App/Core/Router.php`
+```1:22:/workspace/src/App/Core/Router.php
+<?php
+
+namespace App\Core;
+
+class Router
+{
+    private $routes = [];
+
+    public function get($path, $callback)
+    {
+        $this->routes['GET'][$path] = $callback;
+    }
+```
