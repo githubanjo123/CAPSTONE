@@ -7,6 +7,7 @@ require_once '../vendor/autoload.php';
 use App\Core\Router;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Admin\AdminController;
+use App\Controllers\Admin\SubjectController;
 use App\Controllers\Faculty\FacultyController;
 
 // Initialize router
@@ -102,6 +103,39 @@ $router->post('/admin/users/delete-faculty', function() {
 
 $router->post('/admin/users/delete/{id}', function($id) {
     (new AdminController())->deleteUser($id);
+});
+
+// Subject Management Routes
+$router->get('/admin/subjects', function() {
+    (new SubjectController())->index();
+});
+
+$router->post('/admin/subjects/add', function() {
+    (new SubjectController())->addSubject();
+});
+
+$router->post('/admin/subjects/edit', function() {
+    (new SubjectController())->editSubject();
+});
+
+$router->post('/admin/subjects/delete', function() {
+    (new SubjectController())->deleteSubject();
+});
+
+$router->get('/admin/subjects/{id}', function($id) {
+    (new SubjectController())->getSubject($id);
+});
+
+$router->get('/admin/subjects/search', function() {
+    (new SubjectController())->searchSubjects();
+});
+
+$router->get('/admin/subjects/filter/year-level', function() {
+    (new SubjectController())->getSubjectsByYearLevel();
+});
+
+$router->get('/admin/subjects/filter/semester', function() {
+    (new SubjectController())->getSubjectsBySemester();
 });
 
 // Handle the request
