@@ -3,7 +3,7 @@
 namespace App\DAO;
 
 use App\Models\Subject;
-use App\Core\Database;
+use App\Config\Database;
 use PDO;
 
 class SubjectDAO
