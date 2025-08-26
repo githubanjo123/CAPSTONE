@@ -4,7 +4,6 @@ namespace App\Controllers\Admin;
 
 use App\Services\Auth\AuthService;
 use App\Services\User\UserService;
-use App\DAO\Auth\UserDAO;
 use App\Core\View;
 
 class AdminController
@@ -16,7 +15,7 @@ class AdminController
     public function __construct()
     {
         $this->authService = new AuthService();
-        $this->userService = new UserService(new UserDAO());
+        $this->userService = new UserService();
         $this->view = new View();
         
         // Ensure user is authenticated and is admin
