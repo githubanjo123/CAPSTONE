@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Services\Auth\AuthService;
 use App\Services\User\UserService;
 use App\Services\Subject\SubjectService;
+use App\Services\Assignment\AssignmentService;
 use App\Core\View;
 
 class AdminController
@@ -12,17 +13,20 @@ class AdminController
     private $authService;
     private $userService;
     private $subjectService;
+    private $assignmentService;
     private $view;
 
     public function __construct(
         AuthService $authService = null,
         UserService $userService = null,
         SubjectService $subjectService = null,
+        AssignmentService $assignmentService = null,
         View $view = null
     ) {
         $this->authService = $authService ?? new AuthService();
         $this->userService = $userService ?? new UserService();
         $this->subjectService = $subjectService ?? new SubjectService();
+        $this->assignmentService = $assignmentService ?? new AssignmentService();
         $this->view = $view ?? new View();
         
         // Ensure user is authenticated and is admin
@@ -41,6 +45,7 @@ class AdminController
         $students = $this->userService->getUsersByRole('student');
         $faculty = $this->userService->getUsersByRole('faculty');
         $subjects = $this->subjectService->getAllSubjects();
+        $assignments = $this->assignmentService->getAllAssignments();
         
         // Convert User objects to arrays for view compatibility
         $studentsArray = $this->userService->usersToArray($students);
@@ -51,9 +56,15 @@ class AdminController
             'students' => $studentsArray,
             'faculty' => $facultyArray,
             'subjects' => $subjects,
+            'assignments' => $assignments,
             'yearSections' => $this->getYearSections($studentsArray),
             'yearLevels' => $this->subjectService->getYearLevels(),
-            'semesters' => $this->subjectService->getSemesters()
+            'semesters' => $this->subjectService->getSemesters(),
+            'assignmentYearLevels' => $this->assignmentService->getYearLevels(),
+            'assignmentSections' => $this->assignmentService->getSections(),
+            'academicYears' => $this->assignmentService->getAcademicYears(),
+            'assignmentSemesters' => $this->assignmentService->getSemesters(),
+            'assignmentStatuses' => $this->assignmentService->getAssignmentStatuses()
         ];
         
         $this->view->display('admin.dashboard', $data);

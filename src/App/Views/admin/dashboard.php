@@ -130,11 +130,7 @@
 
             <!-- Tab 3: Subject Assignments -->
             <div id="assignments" class="tab-content hidden">
-                <div class="text-center py-12">
-                    <i class="fas fa-link text-6xl text-grey-400 mb-4"></i>
-                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Subject Assignments</h4>
-                    <p class="text-grey-500">Assignment functionality coming soon...</p>
-                </div>
+                <?php include 'manage-assignments.php'; ?>
             </div>
 
             <!-- Tab 4: Reports -->

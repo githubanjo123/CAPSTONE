@@ -8,6 +8,7 @@ use App\Core\Router;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\Admin\AdminController;
 use App\Controllers\Admin\SubjectController;
+use App\Controllers\Admin\AssignmentController;
 use App\Controllers\Faculty\FacultyController;
 
 // Initialize router
@@ -137,6 +138,43 @@ $router->get('/admin/subjects/filter/semester', function() {
 
 $router->get('/admin/subjects/refresh', function() {
     (new SubjectController())->refreshSubjects();
+});
+
+// Assignment Management Routes (AJAX only - embedded in dashboard)
+$router->post('/admin/assignments/add', function() {
+    (new AssignmentController())->addAssignment();
+});
+
+$router->post('/admin/assignments/edit', function() {
+    (new AssignmentController())->editAssignment();
+});
+
+$router->post('/admin/assignments/delete', function() {
+    (new AssignmentController())->deleteAssignment();
+});
+
+$router->get('/admin/assignments/{id}', function($id) {
+    (new AssignmentController())->getAssignment($id);
+});
+
+$router->get('/admin/assignments/filter', function() {
+    (new AssignmentController())->getAssignmentsByFilters();
+});
+
+$router->get('/admin/assignments/workload', function() {
+    (new AssignmentController())->getFacultyWorkload();
+});
+
+$router->get('/admin/assignments/unassigned', function() {
+    (new AssignmentController())->getUnassignedSubjects();
+});
+
+$router->get('/admin/assignments/refresh', function() {
+    (new AssignmentController())->refreshAssignments();
+});
+
+$router->get('/admin/assignments/stats', function() {
+    (new AssignmentController())->getAssignmentStats();
 });
 
 // Handle the request
