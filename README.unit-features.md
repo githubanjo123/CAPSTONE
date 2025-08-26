@@ -88,37 +88,70 @@ class AuthService_LoginRgrTest extends TestCase
 }
 ```
 
-Model password verification (recommended):
-`tests/Unit/Models/User.PasswordRgrTest.php`
+### 🟢 GREEN (Minimum to Pass)
+Minimal `User::verifyPassword()` and `AuthService::login()` (aligned with your code):
 ```php
-<?php
-
-use PHPUnit\Framework\TestCase;
-use App\Models\User;
-
-class User_PasswordRgrTest extends TestCase
+// src/App/Models/User.php
+public function verifyPassword(string $plain): bool
 {
-    public function test_verify_password_hashed_and_plain(): void
-    {
-        $plain = 'pw';
-        $user = new User(['password' => password_hash($plain, PASSWORD_BCRYPT)]);
-        $this->assertTrue($user->verifyPassword($plain));
-        $this->assertFalse($user->verifyPassword('nope'));
-
-        $user2 = new User(['password' => 'pw']);
-        $this->assertTrue($user2->verifyPassword('pw'));
+    $hashed = $this->password ?? '';
+    if ($hashed && password_get_info($hashed)['algo']) {
+        return password_verify($plain, $hashed);
     }
+    return $plain === $hashed || $plain === ($this->plain_password ?? '');
+}
+```
+```php
+// src/App/Services/Auth/AuthService.php
+public function login($school_id, $password)
+{
+    if (empty(trim($school_id)) || empty(trim($password))) {
+        return ['success' => false, 'message' => 'School ID and password are required.'];
+    }
+    $school_id = trim($school_id);
+    $password = trim($password);
+
+    $user = $this->userDAO->authenticate($school_id, $password);
+    if (!$user) {
+        return ['success' => false, 'message' => 'User not found.'];
+    }
+    if (!$user->verifyPassword($password)) {
+        return ['success' => false, 'message' => 'Invalid School ID or password.'];
+    }
+
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $_SESSION['user_id'] = $user->getUserId();
+    $_SESSION['school_id'] = $user->getSchoolId();
+    $_SESSION['full_name'] = $user->getFullName();
+    $_SESSION['role'] = $user->getRole();
+    $_SESSION['year_level'] = $user->getYearLevel();
+    $_SESSION['section'] = $user->getSection();
+
+    return [
+        'success' => true,
+        'message' => 'Login successful!',
+        'user' => $user->toArray(),
+    ];
 }
 ```
 
-### 🟢 GREEN (Minimum to Pass)
-- `AuthService::login()` trims, fetches model from DAO, uses `User::verifyPassword()`, sets session keys.
-- `User::verifyPassword()` supports `password_verify()` and plaintext fallback.
-
-### 🔵 REFACTOR
-- Extract session writes to a helper for easier testing.
-- Add logging hooks for failed logins (mockable).
-- Keep DAO returning `User` models.
+### 🔵 REFACTOR (Production-Ready)
+- Extract base-path redirect calc and session write into helpers (testable).
+- Add logging hooks; broaden validation.
+Example refactor extract:
+```php
+// src/App/Services/Auth/AuthService.php
+private function writeSessionFromUser(User $user): void
+{
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $_SESSION['user_id'] = $user->getUserId();
+    $_SESSION['school_id'] = $user->getSchoolId();
+    $_SESSION['full_name'] = $user->getFullName();
+    $_SESSION['role'] = $user->getRole();
+    $_SESSION['year_level'] = $user->getYearLevel();
+    $_SESSION['section'] = $user->getSection();
+}
+```
 
 ---
 
@@ -178,12 +211,45 @@ class AccessControlRgrTest extends TestCase
 ```
 
 ### 🟢 GREEN
-- Ensure `requireAuth()`/`requireRole()` perform base-path-aware redirects to `/login`.
-- `getCurrentUser()` reads from session.
+Key methods (already present and aligned):
+```php
+// src/App/Services/Auth/AuthService.php
+public function isAuthenticated()
+{
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    return isset($_SESSION['user_id']) && isset($_SESSION['role']);
+}
+
+public function requireAuth()
+{
+    if (!$this->isAuthenticated()) {
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $basePath = dirname($scriptName);
+        header('Location: ' . $basePath . '/login');
+        exit;
+    }
+    return ['success' => true, 'message' => 'User is authenticated.'];
+}
+
+public function requireRole($requiredRole)
+{
+    $authResult = $this->requireAuth();
+    if (!$authResult['success']) return $authResult;
+
+    $user = $this->getCurrentUser();
+    if (!$user || !isset($user['role']) || $user['role'] !== $requiredRole) {
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $basePath = dirname($scriptName);
+        header('Location: ' . $basePath . '/login');
+        exit;
+    }
+    return ['success' => true, 'message' => 'User has required role.'];
+}
+```
 
 ### 🔵 REFACTOR
-- Centralize role constants and a simple policy class.
-- Provide a pure function for base-path computation (injectable/mocked).
+- Extract base-path resolver to a pure helper (e.g., `UrlHelper::basePath()`), inject for easier testing.
+- Centralize role constants and policies.
 
 ---
 
@@ -258,14 +324,51 @@ class UserService_CrudRgrTest extends TestCase
 ```
 
 ### 🟢 GREEN
-- `UserService::createUser()` checks uniqueness then calls `create()`.
-- `updateUser()` loads, merges, checks uniqueness on school_id change, calls `update()`.
-- `deleteUser()` ensures existence then calls `delete()`.
+Minimal service logic (aligned with your implementation):
+```php
+// src/App/Services/User/UserService.php
+public function createUser(array $userData): array
+{
+    $user = new User($userData);
+    if ($this->userDAO->schoolIdExists($user->getSchoolId())) {
+        return ['success' => false, 'message' => 'School ID already exists'];
+    }
+    $userId = $this->userDAO->create($user);
+    return $userId
+        ? ['success' => true, 'message' => 'User created successfully', 'user_id' => $userId]
+        : ['success' => false, 'message' => 'Failed to create user'];
+}
+
+public function updateUser($userId, array $userData): array
+{
+    $existing = $this->userDAO->findById($userId);
+    if (!$existing) {
+        return ['success' => false, 'message' => 'User not found'];
+    }
+    $user = new User(array_merge($existing->toArray(), $userData));
+    if (isset($userData['school_id']) && $userData['school_id'] !== $existing->getSchoolId()) {
+        if ($this->userDAO->schoolIdExists($userData['school_id'], $userId)) {
+            return ['success' => false, 'message' => 'School ID already exists.'];
+        }
+    }
+    $ok = $this->userDAO->update($userId, $user);
+    return ['success' => $ok, 'message' => $ok ? 'User updated successfully' : 'Failed to update user'];
+}
+
+public function deleteUser($userId): array
+{
+    $existing = $this->userDAO->findById($userId);
+    if (!$existing) {
+        return ['success' => false, 'message' => 'User not found'];
+    }
+    $ok = $this->userDAO->delete($userId);
+    return ['success' => $ok, 'message' => $ok ? 'User deleted successfully' : 'Failed to delete user'];
+}
+```
 
 ### 🔵 REFACTOR
-- Validate inputs via `User::validate()`.
-- Generate/hash default passwords where applicable.
-- Keep returns simple structs to ease unit assertions; convert to arrays at the view adapter layer.
+- Use `User::validate()`; normalize names/school IDs; generate default hashed password when creating students.
+- Keep service methods thin, delegate persistence to DAO; keep model authoritative for business rules.
 
 ---
 
@@ -299,17 +402,30 @@ class AuthService_LogoutRgrTest extends TestCase
 ```
 
 ### 🟢 GREEN
-- `AuthService::logout()` clears `$_SESSION`, destroys cookie, and returns success.
+```php
+// src/App/Services/Auth/AuthService.php
+public function logout()
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+    session_destroy();
+    return ['success' => true, 'message' => 'Logged out successfully'];
+}
+```
 
 ### 🔵 REFACTOR
-- Consider invalidating other session storage (e.g., server-side stores) if added later.
+- Hook into centralized session manager if introduced later; add logging.
 
 ---
 
 ## 5) Routing/Base-Path Behavior (Pure Helpers)
 User Story: "As a developer, I want requests to resolve correctly regardless of subdirectory or public/ docroot."
-
-Unit-test strategy: Extract a pure helper that normalizes a path given `REQUEST_URI` and `SCRIPT_NAME` and test it in isolation.
 
 ### 🔴 RED (Unit Tests)
 `tests/Unit/Core/RouterPathHelperRgrTest.php`
@@ -343,10 +459,36 @@ class RouterPathHelperRgrTest extends TestCase
 ```
 
 ### 🟢 GREEN
-Implement minimal `PathHelper::normalize(string $requestPath, string $scriptName): string` mirroring the logic in `Router`.
+```php
+// tests/helpers/PathHelper.php (example helper for unit tests)
+namespace App\Core;
+
+final class PathHelper
+{
+    public static function normalize(string $requestPath, string $scriptName): string
+    {
+        $path = rtrim($requestPath, '/');
+        if ($path === '') $path = '/';
+        $scriptDir = dirname($scriptName);
+        $parentDir = rtrim(dirname($scriptDir), '/');
+        $candidates = array_unique(array_filter([
+            $scriptDir,
+            $parentDir && substr($scriptDir, -7) === '/public' ? $parentDir : null,
+        ]));
+        foreach ($candidates as $base) {
+            if ($base !== '/' && $base !== '.' && str_starts_with($path, $base)) {
+                $path = substr($path, strlen($base));
+                if ($path === '') $path = '/';
+                break;
+            }
+        }
+        return $path;
+    }
+}
+```
 
 ### 🔵 REFACTOR
-- Reuse this helper inside `Router` to reduce duplication and to keep router path logic unit-testable.
+- Replace duplicated logic in `Router` with calls to this helper; unit tests remain green while integration becomes simpler.
 
 ---
 
