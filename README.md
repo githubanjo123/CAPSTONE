@@ -231,14 +231,156 @@ Failed asserting that false is true. ...
 ### 🟢 GREEN Phase: Make Tests Pass
 
 - Model: `User::verifyPassword()` supports plaintext and hashed verification.
-```php
-public function verifyPassword(string $plain): bool
-{
-    $hashed = $this->password ?? '';
-    if ($hashed && password_get_info($hashed)['algo']) {
-        return password_verify($plain, $hashed);
+```96:116:/workspace/src/App/Models/User.php
+    /**
+     * Verify password - kept in model as it's about the entity's own data
+     */
+    public function verifyPassword(string $inputPassword): bool
+    {
+        if (empty($this->password)) {
+            return false;
+        }
+
+        // Check if password is hashed (starts with $) or plain text
+        if (strpos($this->password, '$') === 0) {
+            return password_verify($inputPassword, $this->password);
+        } else {
+            // Legacy plain text password support
+            return $inputPassword === $this->password;
+        }
     }
-    return $plain === $hashed || $plain === ($this->plain_password ?? '');
+```
+
+- Service: `UserService` handles business logic (validation, password generation, role checking).
+```1:80:/workspace/src/App/Services/User/UserService.php
+<?php
+
+namespace App\Services\User;
+
+use App\Interfaces\UserServiceInterface;
+use App\Interfaces\UserDAOInterface;
+use App\DAO\Auth\UserDAO;
+use App\Models\User;
+
+class UserService implements UserServiceInterface
+{
+    private $userDAO;
+
+    public function __construct(UserDAOInterface $userDAO = null)
+    {
+        $this->userDAO = $userDAO ?? new UserDAO();
+    }
+
+    /**
+     * Create a new user (delegates to AuthService for proper business logic)
+     */
+    public function createUser($data)
+    {
+        $user = new User($data);
+        
+        // Basic validation
+        $validationErrors = $this->validate($user);
+        if (!empty($validationErrors)) {
+            return [
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validationErrors
+            ];
+        }
+
+        // Check if school_id already exists
+        if ($this->userDAO->schoolIdExists($user->getSchoolId())) {
+            return [
+                'success' => false,
+                'message' => 'School ID already exists.'
+            ];
+        }
+
+        // Generate and hash default password
+        $defaultPassword = $this->generateDefaultPassword($user);
+        $hashedPassword = $this->hashPassword($defaultPassword);
+        $user->setPassword($hashedPassword);
+
+        // Create user
+        $userId = $this->userDAO->create($user);
+        
+        if ($userId) {
+            return [
+                'success' => true,
+                'message' => 'User created successfully!',
+                'user_id' => $userId,
+                'default_password' => $defaultPassword
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Failed to create user.'
+            ];
+        }
+    }
+
+    // Business Logic Methods (moved from User model)
+
+    /**
+     * Generate default password for user
+     */
+    public function generateDefaultPassword(User $user): string
+    {
+        if (empty($user->getSchoolId()) || empty($user->getFullName())) {
+            throw new \InvalidArgumentException('School ID and full name are required to generate password');
+        }
+        
+        return $user->getSchoolId() . $user->getFullName();
+    }
+
+    /**
+     * Hash password
+     */
+    public function hashPassword(string $plainPassword): string
+    {
+        return password_hash($plainPassword, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(User $user): bool
+    {
+        return $user->getRole() === 'admin';
+    }
+
+    /**
+     * Validate user data
+     */
+    public function validate(User $user): array
+    {
+        $errors = [];
+
+        if (empty($user->getSchoolId())) {
+            $errors[] = 'School ID is required';
+        }
+
+        if (empty($user->getFullName())) {
+            $errors[] = 'Full name is required';
+        }
+
+        if (empty($user->getRole())) {
+            $errors[] = 'Role is required';
+        } elseif (!in_array($user->getRole(), ['admin', 'faculty', 'student'])) {
+            $errors[] = 'Invalid role';
+        }
+
+        if ($user->getRole() === 'student') {
+            if (empty($user->getYearLevel())) {
+                $errors[] = 'Year level is required for students';
+            }
+            if (empty($user->getSection())) {
+                $errors[] = 'Section is required for students';
+            }
+        }
+
+        return $errors;
+    }
 }
 ```
 
@@ -458,7 +600,7 @@ class UserDAO implements UserDAOInterface
 - `src/App/Models/User.php` (password verification)
 ```96:116:/workspace/src/App/Models/User.php
     /**
-     * Verify password
+     * Verify password - kept in model as it's about the entity's own data
      */
     public function verifyPassword(string $inputPassword): bool
     {

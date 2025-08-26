@@ -110,14 +110,17 @@ namespace App\Services\Auth;
 
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
+use App\Services\User\UserService;
 
 class AuthService
 {
     private $userDAO;
+    private $userService;
 
-    public function __construct(UserDAO $userDAO = null)
+    public function __construct(UserDAO $userDAO = null, UserService $userService = null)
     {
         $this->userDAO = $userDAO ?? new UserDAO();
+        $this->userService = $userService ?? new UserService();
     }
 
     /**
@@ -183,10 +186,76 @@ class AuthService
     }
 ```
 
-- Model
-```96:116:/workspace/src/App/Models/User.php
+- Model (lean data model)
+```1:70:/workspace/src/App/Models/User.php
+<?php
+
+namespace App\Models;
+
+class User
+{
+    private $user_id;
+    private $school_id;
+    private $full_name;
+    private $password;
+    private $role;
+    private $year_level;
+    private $section;
+    private $created_at;
+    private $updated_at;
+
+    public function __construct(array $data = [])
+    {
+        $this->hydrate($data);
+    }
+
     /**
-     * Verify password
+     * Hydrate the model with data
+     */
+    public function hydrate(array $data): self
+    {
+        $this->user_id = $data['user_id'] ?? null;
+        $this->school_id = $data['school_id'] ?? null;
+        $this->full_name = $data['full_name'] ?? null;
+        $this->password = $data['password'] ?? null;
+        $this->role = $data['role'] ?? null;
+        $this->year_level = $data['year_level'] ?? null;
+        $this->section = $data['section'] ?? null;
+        $this->created_at = $data['created_at'] ?? null;
+        $this->updated_at = $data['updated_at'] ?? null;
+        
+        return $this;
+    }
+
+    /**
+     * Convert model to array
+     */
+    public function toArray(): array
+    {
+        return [
+            'user_id' => $this->user_id,
+            'school_id' => $this->school_id,
+            'full_name' => $this->full_name,
+            'password' => $this->password,
+            'role' => $this->role,
+            'year_level' => $this->year_level,
+            'section' => $this->section,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
+        ];
+    }
+
+    // Getters and setters...
+    public function getUserId(): ?int { return $this->user_id; }
+    public function getSchoolId(): ?string { return $this->school_id; }
+    public function getFullName(): ?string { return $this->full_name; }
+    public function getPassword(): ?string { return $this->password; }
+    public function getRole(): ?string { return $this->role; }
+    public function getYearLevel(): ?string { return $this->year_level; }
+    public function getSection(): ?string { return $this->section; }
+
+    /**
+     * Verify password - kept in model as it's about the entity's own data
      */
     public function verifyPassword(string $inputPassword): bool
     {
@@ -202,55 +271,145 @@ class AuthService
             return $inputPassword === $this->password;
         }
     }
+}
 ```
 
-- Controller
-```1:40:/workspace/src/App/Controllers/Auth/AuthController.php
+- UserService (business logic)
+```1:80:/workspace/src/App/Services/User/UserService.php
 <?php
 
-namespace App\Controllers\Auth;
+namespace App\Services\User;
 
-use App\Services\Auth\AuthService;
-use App\Core\View;
-
-class AuthController
-{
-    private $authService;
-    private $view;
-
-    public function __construct()
-    {
-        $this->authService = new AuthService();
-        $this->view = new View();
-    }
-```
-
-- DAO
-```1:34:/workspace/src/App/DAO/Auth/UserDAO.php
-<?php
-
-namespace App\DAO\Auth;
-
-use App\Config\Database;
+use App\Interfaces\UserServiceInterface;
 use App\Interfaces\UserDAOInterface;
+use App\DAO\Auth\UserDAO;
 use App\Models\User;
-use PDO;
-use PDOException;
 
-class UserDAO implements UserDAOInterface
+class UserService implements UserServiceInterface
 {
-    private $db;
-    private $table = 'users';
+    private $userDAO;
 
-    public function __construct()
+    public function __construct(UserDAOInterface $userDAO = null)
     {
-        $this->db = Database::getInstance()->getConnection();
+        $this->userDAO = $userDAO ?? new UserDAO();
     }
+
+    /**
+     * Create a new user (delegates to AuthService for proper business logic)
+     */
+    public function createUser($data)
+    {
+        $user = new User($data);
+        
+        // Basic validation
+        $validationErrors = $this->validate($user);
+        if (!empty($validationErrors)) {
+            return [
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validationErrors
+            ];
+        }
+
+        // Check if school_id already exists
+        if ($this->userDAO->schoolIdExists($user->getSchoolId())) {
+            return [
+                'success' => false,
+                'message' => 'School ID already exists.'
+            ];
+        }
+
+        // Generate and hash default password
+        $defaultPassword = $this->generateDefaultPassword($user);
+        $hashedPassword = $this->hashPassword($defaultPassword);
+        $user->setPassword($hashedPassword);
+
+        // Create user
+        $userId = $this->userDAO->create($user);
+        
+        if ($userId) {
+            return [
+                'success' => true,
+                'message' => 'User created successfully!',
+                'user_id' => $userId,
+                'default_password' => $defaultPassword
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Failed to create user.'
+            ];
+        }
+    }
+
+    // Business Logic Methods (moved from User model)
+
+    /**
+     * Generate default password for user
+     */
+    public function generateDefaultPassword(User $user): string
+    {
+        if (empty($user->getSchoolId()) || empty($user->getFullName())) {
+            throw new \InvalidArgumentException('School ID and full name are required to generate password');
+        }
+        
+        return $user->getSchoolId() . $user->getFullName();
+    }
+
+    /**
+     * Hash password
+     */
+    public function hashPassword(string $plainPassword): string
+    {
+        return password_hash($plainPassword, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(User $user): bool
+    {
+        return $user->getRole() === 'admin';
+    }
+
+    /**
+     * Validate user data
+     */
+    public function validate(User $user): array
+    {
+        $errors = [];
+
+        if (empty($user->getSchoolId())) {
+            $errors[] = 'School ID is required';
+        }
+
+        if (empty($user->getFullName())) {
+            $errors[] = 'Full name is required';
+        }
+
+        if (empty($user->getRole())) {
+            $errors[] = 'Role is required';
+        } elseif (!in_array($user->getRole(), ['admin', 'faculty', 'student'])) {
+            $errors[] = 'Invalid role';
+        }
+
+        if ($user->getRole() === 'student') {
+            if (empty($user->getYearLevel())) {
+                $errors[] = 'Year level is required for students';
+            }
+            if (empty($user->getSection())) {
+                $errors[] = 'Section is required for students';
+            }
+        }
+
+        return $errors;
+    }
+}
 ```
 
 Side-by-side (Green vs Refactor) key change:
 - Green: hardcoded credential match; no DAO; minimal session keys.
-- Refactor: DAO injected; fetch `User`; verify hashed or plain password; set full session profile.
+- Refactor: DAO injected; fetch `User`; verify hashed or plain password; set full session profile; business logic moved to UserService.
 
 ---
 
@@ -662,13 +821,10 @@ class UserService implements UserServiceInterface
      */
     public function createUser($data)
     {
-        // Note: This method now delegates to AuthService which has the proper business logic
-        // This is kept for backward compatibility but should use AuthService::createUser()
-        
         $user = new User($data);
         
         // Basic validation
-        $validationErrors = $user->validate();
+        $validationErrors = $this->validate($user);
         if (!empty($validationErrors)) {
             return [
                 'success' => false,
@@ -686,8 +842,8 @@ class UserService implements UserServiceInterface
         }
 
         // Generate and hash default password
-        $defaultPassword = $user->generateDefaultPassword();
-        $hashedPassword = $user->hashPassword($defaultPassword);
+        $defaultPassword = $this->generateDefaultPassword($user);
+        $hashedPassword = $this->hashPassword($defaultPassword);
         $user->setPassword($hashedPassword);
 
         // Create user
@@ -707,6 +863,70 @@ class UserService implements UserServiceInterface
             ];
         }
     }
+
+    // Business Logic Methods (moved from User model)
+
+    /**
+     * Generate default password for user
+     */
+    public function generateDefaultPassword(User $user): string
+    {
+        if (empty($user->getSchoolId()) || empty($user->getFullName())) {
+            throw new \InvalidArgumentException('School ID and full name are required to generate password');
+        }
+        
+        return $user->getSchoolId() . $user->getFullName();
+    }
+
+    /**
+     * Hash password
+     */
+    public function hashPassword(string $plainPassword): string
+    {
+        return password_hash($plainPassword, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(User $user): bool
+    {
+        return $user->getRole() === 'admin';
+    }
+
+    /**
+     * Validate user data
+     */
+    public function validate(User $user): array
+    {
+        $errors = [];
+
+        if (empty($user->getSchoolId())) {
+            $errors[] = 'School ID is required';
+        }
+
+        if (empty($user->getFullName())) {
+            $errors[] = 'Full name is required';
+        }
+
+        if (empty($user->getRole())) {
+            $errors[] = 'Role is required';
+        } elseif (!in_array($user->getRole(), ['admin', 'faculty', 'student'])) {
+            $errors[] = 'Invalid role';
+        }
+
+        if ($user->getRole() === 'student') {
+            if (empty($user->getYearLevel())) {
+                $errors[] = 'Year level is required for students';
+            }
+            if (empty($user->getSection())) {
+                $errors[] = 'Section is required for students';
+            }
+        }
+
+        return $errors;
+    }
+}
 ```
 
 - DAO (update/delete excerpts shown later). Create uses prepared statements and returns last insert id.
