@@ -26,25 +26,7 @@ class SubjectController
         $this->authService->requireRole('admin');
     }
 
-    /**
-     * Show subject management page
-     */
-    public function index()
-    {
-        $currentUser = $this->authService->getCurrentUser();
-        $subjects = $this->subjectService->getAllSubjects();
-        $yearLevels = $this->subjectService->getYearLevels();
-        $semesters = $this->subjectService->getSemesters();
-        
-        $data = [
-            'admin' => $currentUser,
-            'subjects' => $subjects,
-            'yearLevels' => $yearLevels,
-            'semesters' => $semesters
-        ];
-        
-        $this->view->display('admin.subjects', $data);
-    }
+
 
     /**
      * Handle add subject request
@@ -58,17 +40,9 @@ class SubjectController
 
         $result = $this->subjectService->createSubject($_POST);
         
-        if ($result['success']) {
-            // Store success message in session
-            $_SESSION['success_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        } else {
-            // Store error message in session
-            $_SESSION['error_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        }
+        // Return JSON response for AJAX requests
+        header('Content-Type: application/json');
+        echo json_encode($result);
     }
 
     /**
@@ -89,17 +63,9 @@ class SubjectController
 
         $result = $this->subjectService->updateSubject($subjectId, $_POST);
         
-        if ($result['success']) {
-            // Store success message in session
-            $_SESSION['success_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        } else {
-            // Store error message in session
-            $_SESSION['error_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        }
+        // Return JSON response for AJAX requests
+        header('Content-Type: application/json');
+        echo json_encode($result);
     }
 
     /**
@@ -120,17 +86,9 @@ class SubjectController
 
         $result = $this->subjectService->deleteSubject($subjectId);
         
-        if ($result['success']) {
-            // Store success message in session
-            $_SESSION['success_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        } else {
-            // Store error message in session
-            $_SESSION['error_message'] = $result['message'];
-            // Redirect back to subject management
-            $this->redirectToSubjects();
-        }
+        // Return JSON response for AJAX requests
+        header('Content-Type: application/json');
+        echo json_encode($result);
     }
 
     /**
@@ -212,16 +170,7 @@ class SubjectController
         $this->showSuccess($subjects);
     }
 
-    /**
-     * Redirect to subject management page
-     */
-    private function redirectToSubjects()
-    {
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $basePath = dirname($scriptName);
-        header('Location: ' . $basePath . '/admin/subjects');
-        exit;
-    }
+
 
     /**
      * Show success message

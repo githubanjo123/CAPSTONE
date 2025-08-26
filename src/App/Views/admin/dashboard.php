@@ -125,15 +125,7 @@
 
             <!-- Tab 2: Manage Subjects -->
             <div id="subjects" class="tab-content hidden">
-                <div class="text-center py-12">
-                    <i class="fas fa-book text-6xl text-grey-400 mb-4"></i>
-                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Manage Subjects</h4>
-                    <p class="text-grey-500 mb-6">Subject management functionality is now available!</p>
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/subjects" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300">
-                        <i class="fas fa-external-link-alt mr-2"></i>
-                        Go to Subject Management
-                    </a>
-                </div>
+                <?php include 'manage-subjects.php'; ?>
             </div>
 
             <!-- Tab 3: Subject Assignments -->

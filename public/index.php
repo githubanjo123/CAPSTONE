@@ -105,10 +105,7 @@ $router->post('/admin/users/delete/{id}', function($id) {
     (new AdminController())->deleteUser($id);
 });
 
-// Subject Management Routes
-$router->get('/admin/subjects', function() {
-    (new SubjectController())->index();
-});
+// Subject Management Routes (AJAX only - embedded in dashboard)
 
 $router->post('/admin/subjects/add', function() {
     (new SubjectController())->addSubject();

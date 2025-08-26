@@ -4,21 +4,25 @@ namespace App\Controllers\Admin;
 
 use App\Services\Auth\AuthService;
 use App\Services\User\UserService;
+use App\Services\Subject\SubjectService;
 use App\Core\View;
 
 class AdminController
 {
     private $authService;
     private $userService;
+    private $subjectService;
     private $view;
 
     public function __construct(
         AuthService $authService = null,
         UserService $userService = null,
+        SubjectService $subjectService = null,
         View $view = null
     ) {
         $this->authService = $authService ?? new AuthService();
         $this->userService = $userService ?? new UserService();
+        $this->subjectService = $subjectService ?? new SubjectService();
         $this->view = $view ?? new View();
         
         // Ensure user is authenticated and is admin
@@ -36,6 +40,7 @@ class AdminController
         // Get real data from database
         $students = $this->userService->getUsersByRole('student');
         $faculty = $this->userService->getUsersByRole('faculty');
+        $subjects = $this->subjectService->getAllSubjects();
         
         // Convert User objects to arrays for view compatibility
         $studentsArray = $this->userService->usersToArray($students);
@@ -45,7 +50,10 @@ class AdminController
             'admin' => $currentUser, // Already an array from AuthService
             'students' => $studentsArray,
             'faculty' => $facultyArray,
-            'yearSections' => $this->getYearSections($studentsArray)
+            'subjects' => $subjects,
+            'yearSections' => $this->getYearSections($studentsArray),
+            'yearLevels' => $this->subjectService->getYearLevels(),
+            'semesters' => $this->subjectService->getSemesters()
         ];
         
         $this->view->display('admin.dashboard', $data);
