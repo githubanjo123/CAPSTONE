@@ -17,39 +17,46 @@ Based on: `AuthService::login()` and `AuthController::login()`
 
 ### Iteration 1: Happy path and basic validation
 
-#### 🔴 RED (Service layer test)
-```php
-<?php
-// Layer: Test (Service)
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth\AuthService;
-
-class AuthService_Login_HappyPathTest extends TestCase
-{
-    protected function setUp(): void
+#### 🔴 RED (Service layer test from tests/Unit/Auth/AuthServiceTest.php)
+```75:112:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_login_successfully_with_valid_credentials()
     {
-        if (session_status() === PHP_SESSION_ACTIVE) session_destroy();
-        $_SESSION = [];
-    }
+        $schoolId = 'TEST123';
+        $password = 'password123';
+        
+        // Create a User object to return from DAO
+        $user = new User([
+            'user_id' => 1,
+            'school_id' => $schoolId,
+            'full_name' => 'John Doe',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A',
+            'password' => password_hash($password, PASSWORD_DEFAULT)
+        ]);
 
-    public function test_login_success_sets_session_and_returns_user_array(): void
-    {
-        $auth = new AuthService();
-        // Intentionally simple inputs for first iteration
-        $result = $auth->login('S1', 'pw');
+        // Mock the DAO to return the user
+        $this->userDAOMock
+            ->expects($this->once())
+            ->method('authenticate')
+            ->with($schoolId, $password)
+            ->willReturn($user);
+
+        // Start session for the test
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $result = $this->authService->login($schoolId, $password);
 
         $this->assertTrue($result['success']);
-        $this->assertSame('S1', $_SESSION['school_id'] ?? null);
-        $this->assertSame('admin', $_SESSION['role'] ?? null);
+        $this->assertEquals('Login successful!', $result['message']);
+        $this->assertArrayHasKey('user', $result);
+        $this->assertEquals($schoolId, $result['user']['school_id']);
+        $this->assertEquals('John Doe', $result['user']['full_name']);
+        $this->assertEquals('student', $result['user']['role']);
     }
-
-    public function test_login_rejects_empty_credentials(): void
-    {
-        $auth = new AuthService();
-        $this->assertFalse($auth->login('', 'pw')['success']);
-        $this->assertFalse($auth->login('S1', '')['success']);
-    }
-}
 ```
 
 Example PHPUnit output (abbrev.):
@@ -239,38 +246,57 @@ Side-by-side (Green vs Refactor) key change:
 
 ### Iteration 2: Missing user and wrong password paths
 
-#### 🔴 RED (Service tests for error paths)
-```php
-<?php
-// Layer: Test (Service)
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth\AuthService;
-
-class AuthService_Login_ErrorPathsTest extends TestCase
-{
-    public function test_wrong_password_returns_specific_message(): void
+#### 🔴 RED (Service tests for error paths from tests/Unit/Auth/AuthServiceTest.php)
+```114:141:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_fail_login_with_invalid_password()
     {
-        $auth = new AuthService();
-        $result = $auth->login('S1', 'wrong');
-        $this->assertFalse($result['success']);
-        $this->assertSame('Invalid School ID or password.', $result['message']);
-    }
+        $schoolId = 'TEST123';
+        $password = 'wrongpassword';
+        $correctPassword = 'correctpassword';
+        
+        // Create a User object with correct password
+        $user = new User([
+            'user_id' => 1,
+            'school_id' => $schoolId,
+            'full_name' => 'John Doe',
+            'role' => 'student',
+            'password' => password_hash($correctPassword, PASSWORD_DEFAULT)
+        ]);
 
-    public function test_user_not_found_returns_specific_message(): void
-    {
-        $auth = new AuthService();
-        $result = $auth->login('NONE', 'pw');
+        // Mock the DAO to return the user (DAO just finds, doesn't authenticate)
+        $this->userDAOMock
+            ->expects($this->once())
+            ->method('authenticate')
+            ->with($schoolId, $password)
+            ->willReturn($user);
+
+        $result = $this->authService->login($schoolId, $password);
+
         $this->assertFalse($result['success']);
-        $this->assertSame('User not found.', $result['message']);
+        $this->assertEquals('Invalid School ID or password.', $result['message']);
     }
-}
 ```
 
-Example PHPUnit output (abbrev.):
-```text
-FF
-1) ...wrong_password_returns_specific_message
-Failed asserting that 'User not found.' matches expected 'Invalid School ID or password.'
+```143:159:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_fail_login_when_user_not_found()
+    {
+        $schoolId = 'NONEXISTENT';
+        $password = 'password123';
+
+        // Mock the DAO to return null (user not found)
+        $this->userDAOMock
+            ->expects($this->once())
+            ->method('authenticate')
+            ->with($schoolId, $password)
+            ->willReturn(null);
+
+        $result = $this->authService->login($schoolId, $password);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals('User not found.', $result['message']);
+    }
 ```
 
 #### 🟢 GREEN (Service, extend minimal branches)
@@ -414,24 +440,19 @@ Based on: AdminController user management methods and UserService
 
 ### Iteration 1: Create student happy path
 
-#### 🔴 RED (Service)
-```php
-<?php
-use PHPUnit\Framework\TestCase;
-use App\Services\User\UserService;
-use App\DAO\Auth\UserDAO;
-use App\Models\User;
-
-class UserService_CreateStudentTest extends TestCase
-{
-    public function test_create_student_success_returns_id_and_default_password(): void
+#### 🔴 RED (Service from tests/Unit/User/UserServiceTest.php)
+```131:149:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_create_user_successfully()
     {
-        $service = new UserService(new UserDAO());
+        $dao = new FakeUserDAO();
+        $service = new UserService($dao);
+
         $result = $service->createUser([
             'school_id' => 'S100',
             'full_name' => 'Stu Dent',
             'role' => 'student',
-            'year_level' => '1',
+            'year_level' => '1st',
             'section' => 'A'
         ]);
 
@@ -439,7 +460,6 @@ class UserService_CreateStudentTest extends TestCase
         $this->assertArrayHasKey('user_id', $result);
         $this->assertArrayHasKey('default_password', $result);
     }
-}
 ```
 
 Example output (abbrev.):
@@ -552,22 +572,18 @@ class UserService implements UserServiceInterface
 
 ### Iteration 2: Update and validation errors
 
-#### 🔴 RED (Service)
-```php
-<?php
-use PHPUnit\Framework\TestCase;
-use App\Services\User\UserService;
-
-class UserService_Update_ValidationTest extends TestCase
-{
-    public function test_update_user_fails_when_not_found(): void
+#### 🔴 RED (Service from tests/Unit/User/UserServiceTest.php)
+```222:230:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_fail_to_update_nonexistent_user()
     {
-        $service = new UserService();
+        $dao = new FakeUserDAO();
+        $service = new UserService($dao);
+
         $result = $service->updateUser(999, ['full_name' => 'New Name']);
         $this->assertFalse($result['success']);
         $this->assertSame('User not found.', $result['message']);
     }
-}
 ```
 
 #### 🟢 GREEN (Service minimal branch)
@@ -646,21 +662,18 @@ class UserService
 
 ### Iteration 3: Delete paths + DAO operations
 
-#### 🔴 RED (Service)
-```php
-<?php
-use PHPUnit\Framework\TestCase;
-use App\Services\User\UserService;
-
-class UserService_DeleteTest extends TestCase
-{
-    public function test_delete_user_success(): void
+#### 🔴 RED (Service from tests/Unit/User/UserServiceTest.php)
+```233:240:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_delete_user_successfully()
     {
-        $service = new UserService();
-        $result = $service->deleteUser(1);
+        $dao = new FakeUserDAO();
+        $service = new UserService($dao);
+        $id = $dao->create(new User(['school_id' => 'X', 'full_name' => 'Y', 'role' => 'student']));
+
+        $result = $service->deleteUser($id);
         $this->assertTrue($result['success']);
     }
-}
 ```
 
 #### 🟢 GREEN (Service minimal branch)
@@ -761,15 +774,10 @@ Based on: Role-based redirects and dashboard controllers
 
 ### Iteration 1: Admin-only access gate
 
-#### 🔴 RED (Service requireRole)
-```php
-<?php
-use PHPUnit\Framework\TestCase;
-use App\Services\Auth\AuthService;
-
-class AccessControl_AdminGateTest extends TestCase
-{
-    public function test_require_role_redirects_on_mismatch(): void
+#### 🔴 RED (Service requireRole from tests/Unit/Auth/AuthServiceTest.php)
+```338:354:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_require_specific_role_for_role_protected_resources()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
         $_SESSION = ['user_id' => 1, 'role' => 'student'];
@@ -781,7 +789,6 @@ class AccessControl_AdminGateTest extends TestCase
             $this->assertTrue(true);
         }
     }
-}
 ```
 
 Example output:
