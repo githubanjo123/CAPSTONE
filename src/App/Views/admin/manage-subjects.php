@@ -581,7 +581,9 @@ function addSubject() {
     .then(data => {
         if (data.success) {
             hideAddSubjectModal();
-            location.reload(); // Reload to show new subject
+            // Refresh subjects data without page reload
+            refreshSubjectsData();
+            showSuccessMessage('Subject added successfully!');
         } else {
             alert('Error: ' + data.message);
         }
@@ -631,7 +633,9 @@ function updateSubject() {
     .then(data => {
         if (data.success) {
             hideEditSubjectModal();
-            location.reload(); // Reload to show updated subject
+            // Refresh subjects data without page reload
+            refreshSubjectsData();
+            showSuccessMessage('Subject updated successfully!');
         } else {
             alert('Error: ' + data.message);
         }
@@ -661,7 +665,9 @@ function confirmDeleteSubject() {
     .then(data => {
         if (data.success) {
             hideDeleteSubjectModal();
-            location.reload(); // Reload to show updated list
+            // Refresh subjects data without page reload
+            refreshSubjectsData();
+            showSuccessMessage('Subject deleted successfully!');
         } else {
             alert('Error: ' + data.message);
         }
@@ -670,6 +676,56 @@ function confirmDeleteSubject() {
         console.error('Error:', error);
         alert('An error occurred while deleting the subject.');
     });
+}
+
+// Helper functions for dynamic updates
+function refreshSubjectsData() {
+    // Fetch fresh subjects data from the server
+    fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/subjects/refresh', {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            currentSubjects = data.data;
+            loadSubjects();
+        } else {
+            console.error('Error refreshing subjects:', data.message);
+            // Fallback: reload the page if refresh fails
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing subjects:', error);
+        // Fallback: reload the page if refresh fails
+        location.reload();
+    });
+}
+
+function showSuccessMessage(message) {
+    // Create a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex justify-between items-center';
+    successDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            ${message}
+        </div>
+        <button type="button" class="text-green-700 hover:text-green-900" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Insert at the top of the subjects content area
+    const subjectsContent = document.getElementById('subjects');
+    subjectsContent.insertBefore(successDiv, subjectsContent.firstChild);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (successDiv.parentElement) {
+            successDiv.remove();
+        }
+    }, 5000);
 }
 
 // Utility functions

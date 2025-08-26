@@ -135,6 +135,10 @@ $router->get('/admin/subjects/filter/semester', function() {
     (new SubjectController())->getSubjectsBySemester();
 });
 
+$router->get('/admin/subjects/refresh', function() {
+    (new SubjectController())->refreshSubjects();
+});
+
 // Handle the request
 $router->handleRequest();
 ?>

@@ -170,6 +170,9 @@
             const activeTab = document.getElementById(tabName + '-tab');
             activeTab.classList.remove('text-grey-600');
             activeTab.classList.add('bg-white', 'text-primary-600', 'border-primary-600');
+            
+            // Save current tab to localStorage
+            localStorage.setItem('adminCurrentTab', tabName);
         }
 
         // Year-Section Tab Switching
@@ -199,6 +202,12 @@
             // Show first section by default
             if (yearSectionTabs.length > 0) {
                 yearSectionTabs[0].click();
+            }
+            
+            // Restore saved tab if available
+            const savedTab = localStorage.getItem('adminCurrentTab');
+            if (savedTab && document.getElementById(savedTab + '-tab')) {
+                showTab(savedTab);
             }
         });
     </script>

@@ -170,6 +170,20 @@ class SubjectController
         $this->showSuccess($subjects);
     }
 
+    /**
+     * Refresh subjects data for AJAX requests
+     */
+    public function refreshSubjects()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            $this->showError('Invalid request method.');
+            return;
+        }
+
+        $subjects = $this->subjectService->getAllSubjects();
+        $this->showSuccess($subjects);
+    }
+
 
 
     /**
