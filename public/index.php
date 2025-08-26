@@ -14,9 +14,7 @@ $router = new Router();
 
 // Create controllers
 $authController = new AuthController();
-// Lazy-instantiate protected controllers inside route handlers to avoid auth redirects on /login
-$adminController = new AdminController();
-$facultyController = new FacultyController();
+// Protected controllers are instantiated lazily inside route handlers
 
 // Debug information (remove this later)
 $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

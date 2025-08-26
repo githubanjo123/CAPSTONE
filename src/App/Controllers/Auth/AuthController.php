@@ -24,7 +24,14 @@ class AuthController
         // If user is already logged in, redirect to appropriate dashboard
         if ($this->authService->isAuthenticated()) {
             $user = $this->authService->getCurrentUser();
-            $this->redirectToDashboard($user['role']);
+            $role = $user['role'] ?? null;
+            // Guard against invalid or missing roles to avoid redirect loops
+            if (!in_array($role, ['admin', 'faculty', 'student'], true)) {
+                $this->authService->logout();
+                $this->view->display('auth.login', ['error' => 'Your session role is invalid. Please log in again.']);
+                return;
+            }
+            $this->redirectToDashboard($role);
             return;
         }
 
@@ -112,7 +119,10 @@ class AuthController
                 header('Location: ' . $basePath . '/student-success');
                 break;
             default:
+                // Unknown role: clear session to avoid loops, then redirect to login
+                $this->authService->logout();
                 header('Location: ' . $basePath . '/login');
+                exit;
         }
         return;
     }
