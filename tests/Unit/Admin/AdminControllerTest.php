@@ -170,19 +170,21 @@ class AdminControllerTest extends TestCase
      */
     public function it_should_show_logout_confirmation_page()
     {
-        // Use reflection to call private method
-        $reflection = new ReflectionClass($this->adminController);
-        $method = $reflection->getMethod('showLogoutConfirmation');
-        $method->setAccessible(true);
+        // Mock the view to capture the display call
+        $viewMock = $this->createMock(View::class);
+        $viewMock->expects($this->once())
+            ->method('display')
+            ->with('admin.logout-confirmation', $this->callback(function($data) {
+                return isset($data['logoutUrl']) && isset($data['dashboardUrl']);
+            }));
         
-        $method->invoke($this->adminController);
+        $this->adminController = new AdminController(
+            $this->authServiceMock,
+            $this->userServiceMock,
+            $viewMock
+        );
         
-        $output = ob_get_contents();
-        
-        $this->assertStringContainsString('Confirm Logout', $output);
-        $this->assertStringContainsString('Are you sure you want to logout?', $output);
-        $this->assertStringContainsString('Yes, Logout', $output);
-        $this->assertStringContainsString('Cancel', $output);
+        $this->adminController->logout();
     }
 
     /**
