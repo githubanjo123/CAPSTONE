@@ -121,6 +121,14 @@ class AdminControllerTest extends TestCase
                 ['faculty', $faculty]
             ]);
             
+        $this->userServiceMock
+            ->expects($this->exactly(2))
+            ->method('usersToArray')
+            ->willReturnMap([
+                [$students, $students],
+                [$faculty, $faculty]
+            ]);
+            
         $this->viewMock
             ->expects($this->once())
             ->method('display')
