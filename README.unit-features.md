@@ -15,7 +15,7 @@ Features covered:
 User Story: "As a user, I want to log in with school_id and password."
 
 ### 🔴 RED (Unit Tests)
-`tests/Unit/Auth/AuthService.LoginRgrTest.php`
+See `tests/Unit/Auth/AuthServiceTest.php`
 ```php
 <?php
 
@@ -24,7 +24,7 @@ use App\Services\Auth\AuthService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class AuthService_LoginRgrTest extends TestCase
+class AuthServiceTest extends TestCase
 {
     private AuthService $auth;
     private $dao;
@@ -159,14 +159,14 @@ private function writeSessionFromUser(User $user): void
 User Story: "As a user, I access my role-specific dashboard after login."
 
 ### 🔴 RED (Unit Tests)
-`tests/Unit/Auth/AccessControlRgrTest.php`
+See `tests/Unit/Auth/AuthServiceTest.php` (access control cases)
 ```php
 <?php
 
 use PHPUnit\Framework\TestCase;
 use App\Services\Auth\AuthService;
 
-class AccessControlRgrTest extends TestCase
+class AuthServiceTest extends TestCase
 {
     private AuthService $auth;
 
@@ -257,7 +257,7 @@ public function requireRole($requiredRole)
 User Story: "As an admin, I can add, edit, and delete users."
 
 ### 🔴 RED (Unit Tests)
-`tests/Unit/User/UserService.CrudRgrTest.php`
+See `tests/Unit/User/UserServiceTest.php`
 ```php
 <?php
 
@@ -266,7 +266,7 @@ use App\Services\User\UserService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class UserService_CrudRgrTest extends TestCase
+class UserServiceTest extends TestCase
 {
     private UserService $service;
     private $dao;

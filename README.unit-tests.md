@@ -17,7 +17,7 @@
 User Story: "As a user (admin/faculty/student), I want to login with school_id and password"
 
 ### 🔴 RED Phase (Failing Unit Tests)
-Create `tests/Unit/Auth/AuthServiceRgrTest.php`:
+See `tests/Unit/Auth/AuthServiceTest.php`:
 ```php
 <?php
 
@@ -26,7 +26,7 @@ use App\Services\Auth\AuthService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class AuthServiceRgrTest extends TestCase
+class AuthServiceTest extends TestCase
 {
     private AuthService $authService;
     private $userDAOMock;
@@ -111,14 +111,14 @@ class AuthServiceRgrTest extends TestCase
 }
 ```
 
-Model unit test for password verification (optional but recommended) in `tests/Unit/Models/UserRgrTest.php`:
+Model unit test for password verification is in `tests/Unit/Models/UserTest.php`:
 ```php
 <?php
 
 use PHPUnit\Framework\TestCase;
 use App\Models\User;
 
-class UserRgrTest extends TestCase
+class UserTest extends TestCase
 {
     public function test_verify_password_supports_hashed(): void
     {
@@ -186,7 +186,7 @@ public function login($school_id, $password)
 User Story: "As an admin, I want to create, edit, and delete users (students/faculty)"
 
 ### 🔴 RED Phase (Failing Unit Tests)
-Create `tests/Unit/User/UserServiceRgrTest.php`:
+See `tests/Unit/User/UserServiceTest.php`:
 ```php
 <?php
 
@@ -195,7 +195,7 @@ use App\Services\User\UserService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class UserServiceRgrTest extends TestCase
+class UserServiceTest extends TestCase
 {
     private UserService $userService;
     private $dao;
@@ -274,14 +274,14 @@ Typical minimal implementations (your codebase already follows this pattern).
 User Story: "As a user, I want to access my role-specific dashboard after login"
 
 ### 🔴 RED Phase (Failing Unit Tests)
-Create `tests/Unit/Auth/RoleAccessRgrTest.php`:
+See `tests/Unit/Auth/AuthServiceTest.php` (access control cases inside):
 ```php
 <?php
 
 use PHPUnit\Framework\TestCase;
 use App\Services\Auth\AuthService;
 
-class RoleAccessRgrTest extends TestCase
+class AuthServiceTest extends TestCase
 {
     private AuthService $auth;
 

@@ -21,7 +21,7 @@ use App\Services\Auth\AuthService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class AuthServiceRgrTest extends TestCase
+class AuthServiceTest extends TestCase
 {
     private AuthService $authService;
     private $userDAOMock;
@@ -117,7 +117,7 @@ class AuthServiceRgrTest extends TestCase
 use PHPUnit\Framework\TestCase;
 use App\Controllers\Auth\AuthController;
 
-class AuthControllerRgrTest extends TestCase
+class AuthControllerTest extends TestCase
 {
     private AuthController $controller;
 
@@ -198,7 +198,7 @@ use PHPUnit\Framework\TestCase;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class UserDAORgrTest extends TestCase
+class UserDAOTest extends TestCase
 {
     public function test_find_by_school_id_returns_user_model()
     {
@@ -518,7 +518,7 @@ use App\Services\User\UserService;
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
 
-class UserServiceRgrTest extends TestCase
+class UserServiceTest extends TestCase
 {
     private UserService $userService;
     private $dao;
@@ -586,7 +586,7 @@ class UserServiceRgrTest extends TestCase
 use PHPUnit\Framework\TestCase;
 use App\Controllers\Admin\AdminController;
 
-class AdminControllerRgrTest extends TestCase
+class AdminControllerTest extends TestCase
 {
     protected function setUp(): void
     {
