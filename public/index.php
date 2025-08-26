@@ -14,6 +14,7 @@ $router = new Router();
 
 // Create controllers
 $authController = new AuthController();
+// Lazy-instantiate protected controllers inside route handlers to avoid auth redirects on /login
 $adminController = new AdminController();
 $facultyController = new FacultyController();
 
@@ -42,21 +43,21 @@ $router->post('/api/auth/logout', function() use ($authController) {
 });
 
 // Admin Dashboard Routes
-$router->get('/admin/dashboard', function() use ($adminController) {
-    $adminController->dashboard();
+$router->get('/admin/dashboard', function() {
+    (new AdminController())->dashboard();
 });
 
-$router->get('/admin/logout', function() use ($adminController) {
-    $adminController->logout();
+$router->get('/admin/logout', function() {
+    (new AdminController())->logout();
 });
 
 // Faculty Dashboard Routes
-$router->get('/faculty/dashboard', function() use ($facultyController) {
-    $facultyController->dashboard();
+$router->get('/faculty/dashboard', function() {
+    (new FacultyController())->dashboard();
 });
 
-$router->get('/faculty/logout', function() use ($facultyController) {
-    $facultyController->logout();
+$router->get('/faculty/logout', function() {
+    (new FacultyController())->logout();
 });
 
 // Student success placeholder (until student dashboard exists)
@@ -68,41 +69,41 @@ $router->get('/student-success', function() {
 });
 
 // Admin User Management Routes
-$router->post('/admin/users/add', function() use ($adminController) {
-    $adminController->addUser();
+$router->post('/admin/users/add', function() {
+    (new AdminController())->addUser();
 });
 
-$router->post('/admin/users/add-student', function() use ($adminController) {
-    $adminController->addStudent();
+$router->post('/admin/users/add-student', function() {
+    (new AdminController())->addStudent();
 });
 
-$router->post('/admin/users/edit-student', function() use ($adminController) {
-    $adminController->editStudent();
+$router->post('/admin/users/edit-student', function() {
+    (new AdminController())->editStudent();
 });
 
-$router->post('/admin/users/edit/{id}', function($id) use ($adminController) {
-    $adminController->editUser($id);
+$router->post('/admin/users/edit/{id}', function($id) {
+    (new AdminController())->editUser($id);
 });
 
-$router->post('/admin/users/delete-student', function() use ($adminController) {
-    $adminController->deleteStudent();
+$router->post('/admin/users/delete-student', function() {
+    (new AdminController())->deleteStudent();
 });
 
 // Admin Faculty Management Routes
-$router->post('/admin/users/add-faculty', function() use ($adminController) {
-    $adminController->addFaculty();
+$router->post('/admin/users/add-faculty', function() {
+    (new AdminController())->addFaculty();
 });
 
-$router->post('/admin/users/edit-faculty', function() use ($adminController) {
-    $adminController->editFaculty();
+$router->post('/admin/users/edit-faculty', function() {
+    (new AdminController())->editFaculty();
 });
 
-$router->post('/admin/users/delete-faculty', function() use ($adminController) {
-    $adminController->deleteFaculty();
+$router->post('/admin/users/delete-faculty', function() {
+    (new AdminController())->deleteFaculty();
 });
 
-$router->post('/admin/users/delete/{id}', function($id) use ($adminController) {
-    $adminController->deleteUser($id);
+$router->post('/admin/users/delete/{id}', function($id) {
+    (new AdminController())->deleteUser($id);
 });
 
 // Handle the request
