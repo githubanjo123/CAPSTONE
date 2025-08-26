@@ -10,7 +10,6 @@ use PDOStatement;
 
 class SubjectDAOTest extends TestCase
 {
-    private SubjectDAO $subjectDAO;
     private PDO $mockPdo;
     private PDOStatement $mockStmt;
 
@@ -18,17 +17,22 @@ class SubjectDAOTest extends TestCase
     {
         $this->mockPdo = $this->createMock(PDO::class);
         $this->mockStmt = $this->createMock(PDOStatement::class);
+    }
+
+    /**
+     * Helper method to create a SubjectDAO with a mock PDO
+     */
+    private function createSubjectDAOWithMockPDO()
+    {
+        $subjectDAO = new SubjectDAO();
         
-        // Create a partial mock of SubjectDAO and inject the mock PDO
-        $this->subjectDAO = $this->getMockBuilder(SubjectDAO::class)
-            ->onlyMethods([])
-            ->getMock();
+        // Use reflection to inject the mock PDO
+        $reflection = new \ReflectionClass($subjectDAO);
+        $property = $reflection->getProperty('db');
+        $property->setAccessible(true);
+        $property->setValue($subjectDAO, $this->mockPdo);
         
-        // Use reflection to set the private $db property
-        $reflection = new \ReflectionClass($this->subjectDAO);
-        $dbProperty = $reflection->getProperty('db');
-        $dbProperty->setAccessible(true);
-        $dbProperty->setValue($this->subjectDAO, $this->mockPdo);
+        return $subjectDAO;
     }
 
     /**
@@ -61,6 +65,9 @@ class SubjectDAOTest extends TestCase
             ]
         ];
 
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+
         $this->mockPdo->expects($this->once())
             ->method('prepare')
             ->with($this->stringContains('SELECT * FROM subjects'))
@@ -74,7 +81,7 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturnOnConsecutiveCalls($expectedData[0], $expectedData[1], false);
 
-        $subjects = $this->subjectDAO->getAll();
+        $subjects = $subjectDAO->getAll();
 
         $this->assertCount(2, $subjects);
         $this->assertInstanceOf(Subject::class, $subjects[0]);
@@ -99,6 +106,9 @@ class SubjectDAOTest extends TestCase
             'updated_at' => '2024-01-01 10:00:00'
         ];
 
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+
         $this->mockPdo->expects($this->once())
             ->method('prepare')
             ->with($this->stringContains('WHERE subject_id = ?'))
@@ -113,7 +123,7 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturn($expectedData);
 
-        $subject = $this->subjectDAO->getById(1);
+        $subject = $subjectDAO->getById(1);
 
         $this->assertInstanceOf(Subject::class, $subject);
         $this->assertEquals(1, $subject->getSubjectId());
@@ -138,7 +148,10 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturn(false);
 
-        $subject = $this->subjectDAO->getById(999);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $subject = $subjectDAO->getById(999);
 
         $this->assertNull($subject);
     }
@@ -174,7 +187,10 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturn($expectedData);
 
-        $subject = $this->subjectDAO->getByCode('CS101');
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $subject = $subjectDAO->getByCode('CS101');
 
         $this->assertInstanceOf(Subject::class, $subject);
         $this->assertEquals('CS101', $subject->getSubjectCode());
@@ -215,7 +231,10 @@ class SubjectDAOTest extends TestCase
             ->method('lastInsertId')
             ->willReturn('5');
 
-        $result = $this->subjectDAO->create($subject);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->create($subject);
 
         $this->assertEquals(5, $result);
     }
@@ -253,7 +272,10 @@ class SubjectDAOTest extends TestCase
             ])
             ->willReturn(true);
 
-        $result = $this->subjectDAO->update($subject);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->update($subject);
 
         $this->assertTrue($result);
     }
@@ -273,7 +295,10 @@ class SubjectDAOTest extends TestCase
             ->with([1])
             ->willReturn(true);
 
-        $result = $this->subjectDAO->delete(1);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->delete(1);
 
         $this->assertTrue($result);
     }
@@ -311,7 +336,10 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturnOnConsecutiveCalls($expectedData[0], false);
 
-        $subjects = $this->subjectDAO->search('computer');
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $subjects = $subjectDAO->search('computer');
 
         $this->assertCount(1, $subjects);
         $this->assertInstanceOf(Subject::class, $subjects[0]);
@@ -351,7 +379,10 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturnOnConsecutiveCalls($expectedData[0], false);
 
-        $subjects = $this->subjectDAO->getByYearLevel('1st Year');
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $subjects = $subjectDAO->getByYearLevel('1st Year');
 
         $this->assertCount(1, $subjects);
         $this->assertInstanceOf(Subject::class, $subjects[0]);
@@ -391,7 +422,10 @@ class SubjectDAOTest extends TestCase
             ->with(PDO::FETCH_ASSOC)
             ->willReturnOnConsecutiveCalls($expectedData[0], false);
 
-        $subjects = $this->subjectDAO->getBySemester('1st Semester');
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $subjects = $subjectDAO->getBySemester('1st Semester');
 
         $this->assertCount(1, $subjects);
         $this->assertInstanceOf(Subject::class, $subjects[0]);
@@ -416,7 +450,10 @@ class SubjectDAOTest extends TestCase
             ->method('fetchColumn')
             ->willReturn(2);
 
-        $result = $this->subjectDAO->hasFacultyAssignments(1);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->hasFacultyAssignments(1);
 
         $this->assertTrue($result);
     }
@@ -438,7 +475,10 @@ class SubjectDAOTest extends TestCase
             ->method('fetchColumn')
             ->willReturn(0);
 
-        $result = $this->subjectDAO->hasFacultyAssignments(1);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->hasFacultyAssignments(1);
 
         $this->assertFalse($result);
     }
@@ -461,7 +501,10 @@ class SubjectDAOTest extends TestCase
             ->method('fetchColumn')
             ->willReturn(3);
 
-        $result = $this->subjectDAO->hasExams(1);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->hasExams(1);
 
         $this->assertTrue($result);
     }
@@ -483,7 +526,10 @@ class SubjectDAOTest extends TestCase
             ->method('fetchColumn')
             ->willReturn(0);
 
-        $result = $this->subjectDAO->hasExams(1);
+        // Create SubjectDAO with mock PDO
+        $subjectDAO = $this->createSubjectDAOWithMockPDO();
+        
+        $result = $subjectDAO->hasExams(1);
 
         $this->assertFalse($result);
     }
