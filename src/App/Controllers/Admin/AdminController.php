@@ -34,11 +34,15 @@ class AdminController
         $students = $this->userService->getUsersByRole('student');
         $faculty = $this->userService->getUsersByRole('faculty');
         
+        // Convert User objects to arrays for view compatibility
+        $studentsArray = $this->userService->usersToArray($students);
+        $facultyArray = $this->userService->usersToArray($faculty);
+        
         $data = [
-            'admin' => $currentUser,
-            'students' => $students,
-            'faculty' => $faculty,
-            'yearSections' => $this->getYearSections($students)
+            'admin' => $currentUser, // Already an array from AuthService
+            'students' => $studentsArray,
+            'faculty' => $facultyArray,
+            'yearSections' => $this->getYearSections($studentsArray)
         ];
         
         $this->view->display('admin.dashboard', $data);
