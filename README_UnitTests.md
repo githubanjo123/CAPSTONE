@@ -17,7 +17,7 @@ Based on: `AuthService::login()` and `AuthController::login()`
 
 ### Iteration 1: Happy path and basic validation
 
-#### 🔴 RED (Service layer test from tests/Unit/Auth/AuthServiceTest.php)
+#### 🔴 RED (Service layer tests from tests/Unit/Auth/AuthServiceTest.php)
 ```75:112:/workspace/tests/Unit/Auth/AuthServiceTest.php
     /** @test */
     public function it_should_login_successfully_with_valid_credentials()
@@ -59,12 +59,22 @@ Based on: `AuthService::login()` and `AuthController::login()`
     }
 ```
 
-Example PHPUnit output (abbrev.):
-```text
-PHPUnit 10.x
-FF
-1) AuthService_Login_HappyPathTest::test_login_success_sets_session_and_returns_user_array
-Undefined array key "school_id" ...
+```162:175:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_fail_login_with_empty_credentials()
+    {
+        $result1 = $this->authService->login('', 'password');
+        $this->assertFalse($result1['success']);
+        $this->assertEquals('School ID and password are required.', $result1['message']);
+
+        $result2 = $this->authService->login('schoolid', '');
+        $this->assertFalse($result2['success']);
+        $this->assertEquals('School ID and password are required.', $result2['message']);
+
+        $result3 = $this->authService->login('', '');
+        $this->assertFalse($result3['success']);
+        $this->assertEquals('School ID and password are required.', $result3['message']);
+    }
 ```
 
 #### 🟢 GREEN (Service layer, minimal hardcoded)
@@ -80,11 +90,11 @@ class AuthService
         if (empty(trim($school_id)) || empty(trim($password))) {
             return ['success' => false, 'message' => 'School ID and password are required.'];
         }
-        if ($school_id === 'S1' && $password === 'pw') {
+        if ($school_id === 'TEST123' && $password === 'password123') {
             if (session_status() === \PHP_SESSION_NONE) session_start();
-            $_SESSION['school_id'] = 'S1';
-            $_SESSION['role'] = 'admin';
-            return ['success' => true, 'user' => ['school_id' => 'S1', 'role' => 'admin']];
+            $_SESSION['school_id'] = 'TEST123';
+            $_SESSION['role'] = 'student';
+            return ['success' => true, 'message' => 'Login successful!', 'user' => ['school_id' => 'TEST123', 'full_name' => 'John Doe', 'role' => 'student']];
         }
         return ['success' => false, 'message' => 'User not found.'];
     }
@@ -312,12 +322,12 @@ class AuthService
         if (empty(trim($school_id)) || empty(trim($password))) {
             return ['success' => false, 'message' => 'School ID and password are required.'];
         }
-        if ($school_id === 'S1') {
-            if ($password === 'pw') {
+        if ($school_id === 'TEST123') {
+            if ($password === 'password123') {
                 if (session_status() === \PHP_SESSION_NONE) session_start();
-                $_SESSION['school_id'] = 'S1';
-                $_SESSION['role'] = 'admin';
-                return ['success' => true, 'user' => ['school_id' => 'S1', 'role' => 'admin']];
+                $_SESSION['school_id'] = 'TEST123';
+                $_SESSION['role'] = 'student';
+                return ['success' => true, 'message' => 'Login successful!', 'user' => ['school_id' => 'TEST123', 'full_name' => 'John Doe', 'role' => 'student']];
             }
             return ['success' => false, 'message' => 'Invalid School ID or password.'];
         }
@@ -331,104 +341,203 @@ Reuse the Service, Model, DAO citations from Iteration 1 (they already cover the
 
 ---
 
-### Iteration 3: Controller integration and base-path redirect
+### Iteration 3: Authentication state and session management
 
-#### 🔴 RED (Controller integration)
+#### 🔴 RED (Authentication state tests from tests/Unit/Auth/AuthServiceTest.php)
+```249:261:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_detect_authenticated_user()
+    {
+        $this->setupAuthenticatedSession('student');
+        
+        $isAuthenticated = $this->authService->isAuthenticated();
+        
+        $this->assertTrue($isAuthenticated);
+    }
+
+    /** @test */
+    public function it_should_detect_unauthenticated_user()
+    {
+        $isAuthenticated = $this->authService->isAuthenticated();
+        
+        $this->assertFalse($isAuthenticated);
+    }
+```
+
+```267:282:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_get_current_user_data()
+    {
+        $this->setupAuthenticatedSession('faculty');
+        
+        $currentUser = $this->authService->getCurrentUser();
+        
+        $this->assertNotNull($currentUser);
+        $this->assertEquals('TEST123', $currentUser['school_id']);
+        $this->assertEquals('Test User', $currentUser['full_name']);
+        $this->assertEquals('faculty', $currentUser['role']);
+    }
+
+    /** @test */
+    public function it_should_return_null_for_current_user_when_not_authenticated()
+    {
+        $currentUser = $this->authService->getCurrentUser();
+        
+        $this->assertNull($currentUser);
+    }
+```
+
+```314:329:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_require_authentication_for_protected_resources()
+    {
+        // Test with no session - should exit/redirect, but we'll test the logic
+        $this->expectOutputString('');
+        
+        try {
+            $this->authService->requireAuth();
+            $this->fail('Expected exit() to be called');
+        } catch (\Exception $e) {
+            // Expected behavior when testing redirects
+        }
+    }
+
+    /** @test */
+    public function it_should_allow_access_when_authenticated()
+    {
+        $this->setupAuthenticatedSession('student');
+        
+        $result = $this->authService->requireAuth();
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User is authenticated.', $result['message']);
+    }
+```
+
+```338:354:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_require_specific_role_for_role_protected_resources()
+    {
+        // Test with wrong role - should redirect
+        $this->setupAuthenticatedSession('student');
+        
+        try {
+            $this->authService->requireRole('admin');
+            $this->fail('Expected exit() to be called for insufficient permissions');
+        } catch (\Exception $e) {
+            // Expected behavior when testing redirects
+        }
+    }
+
+    /** @test */
+    public function it_should_allow_access_with_correct_role()
+    {
+        $this->setupAuthenticatedSession('admin');
+        
+        $result = $this->authService->requireRole('admin');
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User has required role.', $result['message']);
+    }
+```
+
+```363:377:/workspace/tests/Unit/Auth/AuthServiceTest.php
+    /** @test */
+    public function it_should_logout_successfully()
+    {
+        $this->setupAuthenticatedSession('student');
+        
+        // Verify user is authenticated before logout
+        $this->assertTrue($this->authService->isAuthenticated());
+        
+        $result = $this->authService->logout();
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('Logged out successfully', $result['message']);
+    }
+```
+
+#### 🟢 GREEN (Service, add authentication state methods)
 ```php
 <?php
-// Layer: Test (Controller)
-use PHPUnit\Framework\TestCase;
-use App\Controllers\Auth\AuthController;
+// Layer: Service (temporary minimal code)
+namespace App\Services\Auth;
 
-class AuthController_LoginFlowTest extends TestCase
+class AuthService
 {
-    protected function setUp(): void
+    public function isAuthenticated()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        $_SESSION = [];
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_SERVER['SCRIPT_NAME'] = '/index.php';
-        $_POST = ['school_id' => 'S1', 'password' => 'pw'];
+        return isset($_SESSION['user_id']) && isset($_SESSION['role']);
     }
 
-    public function test_login_success_performs_role_redirect(): void
+    public function getCurrentUser()
     {
-        ob_start();
-        (new AuthController())->login();
-        ob_end_clean();
-        $this->assertTrue(true); // Header redirect cannot be asserted directly here
+        if (!$this->isAuthenticated()) return null;
+        return [
+            'school_id' => $_SESSION['school_id'] ?? 'TEST123',
+            'full_name' => $_SESSION['full_name'] ?? 'Test User',
+            'role' => $_SESSION['role'] ?? 'faculty'
+        ];
     }
-}
-```
 
-Example output (abbrev.):
-```text
-F
-1) AuthController_LoginFlowTest::test_login_success_performs_role_redirect
-Undefined method login() ...
-```
-
-#### 🟢 GREEN (Controller, minimal endpoint)
-```php
-<?php
-// Layer: Controller (temporary minimal code)
-namespace App\Controllers\Auth;
-
-class AuthController
-{
-    public function login()
+    public function requireAuth()
     {
-        // Call the minimal AuthService green implementation
-        (new \App\Services\Auth\AuthService())->login($_POST['school_id'] ?? '', $_POST['password'] ?? '');
-        // Pretend redirect
-        echo '';
+        if (!$this->isAuthenticated()) {
+            echo '';
+            throw new \Exception('redirect');
+        }
+        return ['success' => true, 'message' => 'User is authenticated.'];
     }
-}
-```
 
-#### 🔵 REFACTOR (Production controller)
-```80:129:/workspace/src/App/Controllers/Auth/AuthController.php
-    /**
-     * Handle logout request
-     */
+    public function requireRole($role)
+    {
+        if (($_SESSION['role'] ?? null) !== $role) {
+            echo '';
+            throw new \Exception('redirect');
+        }
+        return ['success' => true, 'message' => 'User has required role.'];
+    }
+
     public function logout()
     {
-        header('Content-Type: application/json');
-
-        $result = $this->authService->logout();
-
-        echo json_encode([
-            'status' => 'success',
-            'message' => $result['message']
-        ]);
+        session_destroy();
+        return ['success' => true, 'message' => 'Logged out successfully'];
     }
+}
+```
 
-    /**
-     * Redirect to appropriate dashboard based on role
-     */
-    private function redirectToDashboard($role)
-    {
-        // Get the base path for correct redirect
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $basePath = dirname($scriptName);
+#### 🔵 REFACTOR (Production controller + service usage)
+- Controller constructor gating
+```15:27:/workspace/src/App/Controllers/Admin/AdminController.php
+    public function __construct(
+        AuthService $authService = null,
+        UserService $userService = null,
+        View $view = null
+    ) {
+        $this->authService = $authService ?? new AuthService();
+        $this->userService = $userService ?? new UserService();
+        $this->view = $view ?? new View();
         
-        switch ($role) {
-            case 'admin':
-                header('Location: ' . $basePath . '/admin/dashboard');
-                break;
-            case 'faculty':
-                header('Location: ' . $basePath . '/faculty/dashboard');
-                break;
-            case 'student':
-                header('Location: ' . $basePath . '/student-success');
-                break;
-            default:
-                // Unknown role: clear session to avoid loops, then redirect to login
-                $this->authService->logout();
-                header('Location: ' . $basePath . '/login');
-                exit;
-        }
-        return;
+        // Ensure user is authenticated and is admin
+        $this->authService->requireAuth();
+        $this->authService->requireRole('admin');
+    }
+```
+
+- View rendering pipeline
+```1:20:/workspace/src/App/Core/View.php
+<?php
+
+namespace App\Core;
+
+class View
+{
+    private $viewsPath;
+    private $data = [];
+
+    public function __construct($viewsPath = null)
+    {
+        $this->viewsPath = $viewsPath ?: __DIR__ . '/../Views/';
     }
 ```
 
@@ -438,7 +547,7 @@ class AuthController
 User Story: "As an admin, I want to create, edit, and delete users (students/faculty)"
 Based on: AdminController user management methods and UserService
 
-### Iteration 1: Create student happy path
+### Iteration 1: Create user happy path
 
 #### 🔴 RED (Service from tests/Unit/User/UserServiceTest.php)
 ```131:149:/workspace/tests/Unit/User/UserServiceTest.php
@@ -462,10 +571,44 @@ Based on: AdminController user management methods and UserService
     }
 ```
 
-Example output (abbrev.):
-```text
-F
-UserService not found or createUser missing fields ...
+```155:175:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_fail_to_create_user_with_duplicate_school_id()
+    {
+        // Add existing user
+        $this->fakeDAO->addUser([
+            'school_id' => 'DUPLICATE',
+            'full_name' => 'Existing User',
+            'role' => 'student'
+        ]);
+
+        $userData = [
+            'school_id' => 'DUPLICATE',
+            'full_name' => 'New User',
+            'role' => 'faculty'
+        ];
+
+        $result = $this->userService->createUser($userData);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals('School ID already exists.', $result['message']);
+    }
+
+    /** @test */
+    public function it_should_fail_to_create_user_with_invalid_data()
+    {
+        $userData = [
+            'school_id' => '', // Empty school ID
+            'full_name' => 'Test User',
+            'role' => 'student'
+        ];
+
+        $result = $this->userService->createUser($userData);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals('Validation failed', $result['message']);
+        $this->assertArrayHasKey('errors', $result);
+    }
 ```
 
 #### 🟢 GREEN (Service minimal hardcoded)
@@ -479,7 +622,10 @@ class UserService
     public function createUser($data)
     {
         if (($data['school_id'] ?? '') === '' || ($data['full_name'] ?? '') === '') {
-            return ['success' => false, 'message' => 'Validation failed'];
+            return ['success' => false, 'message' => 'Validation failed', 'errors' => []];
+        }
+        if ($data['school_id'] === 'DUPLICATE') {
+            return ['success' => false, 'message' => 'School ID already exists.'];
         }
         return [
             'success' => true,
@@ -573,6 +719,37 @@ class UserService implements UserServiceInterface
 ### Iteration 2: Update and validation errors
 
 #### 🔴 RED (Service from tests/Unit/User/UserServiceTest.php)
+```193:221:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_update_user_successfully()
+    {
+        // Create initial user
+        $this->fakeDAO->addUser([
+            'school_id' => 'UPDATE_TEST',
+            'full_name' => 'Original Name',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A'
+        ]);
+
+        $updateData = [
+            'full_name' => 'Updated Name',
+            'year_level' => '2nd',
+            'section' => 'B'
+        ];
+
+        $result = $this->userService->updateUser(1, $updateData);
+
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User updated successfully!', $result['message']);
+        
+        // Verify update
+        $updatedUser = $this->userService->getUserById(1);
+        $this->assertEquals('Updated Name', $updatedUser->getFullName());
+        $this->assertEquals('2nd', $updatedUser->getYearLevel());
+    }
+```
+
 ```222:230:/workspace/tests/Unit/User/UserServiceTest.php
     /** @test */
     public function it_should_fail_to_update_nonexistent_user()
@@ -676,6 +853,61 @@ class UserService
     }
 ```
 
+```253:260:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_fail_to_delete_nonexistent_user()
+    {
+        $dao = new FakeUserDAO();
+        $service = new UserService($dao);
+
+        $result = $service->deleteUser(999);
+        $this->assertFalse($result['success']);
+        $this->assertEquals('User not found.', $result['message']);
+    }
+```
+
+```262:276:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_get_all_users()
+    {
+        // Add test users
+        $this->fakeDAO->addUser(['school_id' => 'USER1', 'full_name' => 'User One', 'role' => 'student']);
+        $this->fakeDAO->addUser(['school_id' => 'USER2', 'full_name' => 'User Two', 'role' => 'faculty']);
+
+        $users = $this->userService->getAllUsers();
+
+        $this->assertIsArray($users);
+        $this->assertCount(2, $users);
+        $this->assertInstanceOf(User::class, $users[0]);
+        $this->assertInstanceOf(User::class, $users[1]);
+    }
+```
+
+```277:299:/workspace/tests/Unit/User/UserServiceTest.php
+    /** @test */
+    public function it_should_get_users_by_role()
+    {
+        // Add test users
+        $this->fakeDAO->addUser(['school_id' => 'STU1', 'full_name' => 'Student One', 'role' => 'student']);
+        $this->fakeDAO->addUser(['school_id' => 'FAC1', 'full_name' => 'Faculty One', 'role' => 'faculty']);
+        $this->fakeDAO->addUser(['school_id' => 'STU2', 'full_name' => 'Student Two', 'role' => 'student']);
+
+        $students = $this->userService->getUsersByRole('student');
+        $faculty = $this->userService->getUsersByRole('faculty');
+
+        $this->assertCount(2, $students);
+        $this->assertCount(1, $faculty);
+        
+        foreach ($students as $student) {
+            $this->assertInstanceOf(User::class, $student);
+            $this->assertEquals('student', $student->getRole());
+        }
+        
+        $this->assertInstanceOf(User::class, $faculty[0]);
+        $this->assertEquals('faculty', $faculty[0]->getRole());
+    }
+```
+
 #### 🟢 GREEN (Service minimal branch)
 ```php
 <?php
@@ -686,10 +918,23 @@ class UserService
 {
     public function deleteUser($userId)
     {
-        if ($userId === 1) {
-            return ['success' => true, 'message' => 'User deleted successfully!'];
+        if ($userId === 999) {
+            return ['success' => false, 'message' => 'User not found.'];
         }
-        return ['success' => false, 'message' => 'User not found.'];
+        return ['success' => true, 'message' => 'User deleted successfully!'];
+    }
+
+    public function getAllUsers()
+    {
+        return [new \App\Models\User(['school_id' => 'USER1']), new \App\Models\User(['school_id' => 'USER2'])];
+    }
+
+    public function getUsersByRole($role)
+    {
+        if ($role === 'student') {
+            return [new \App\Models\User(['role' => 'student']), new \App\Models\User(['role' => 'student'])];
+        }
+        return [new \App\Models\User(['role' => 'faculty'])];
     }
 }
 ```
@@ -779,22 +1024,27 @@ Based on: Role-based redirects and dashboard controllers
     /** @test */
     public function it_should_require_specific_role_for_role_protected_resources()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        $_SESSION = ['user_id' => 1, 'role' => 'student'];
-        $this->expectOutputRegex('/.*/');
+        // Test with wrong role - should redirect
+        $this->setupAuthenticatedSession('student');
+        
         try {
-            (new AuthService())->requireRole('admin');
-            $this->fail('Expected exit');
-        } catch (\Throwable $e) {
-            $this->assertTrue(true);
+            $this->authService->requireRole('admin');
+            $this->fail('Expected exit() to be called for insufficient permissions');
+        } catch (\Exception $e) {
+            // Expected behavior when testing redirects
         }
     }
-```
 
-Example output:
-```text
-F
-Headers already sent or no exit thrown
+    /** @test */
+    public function it_should_allow_access_with_correct_role()
+    {
+        $this->setupAuthenticatedSession('admin');
+        
+        $result = $this->authService->requireRole('admin');
+        
+        $this->assertTrue($result['success']);
+        $this->assertEquals('User has required role.', $result['message']);
+    }
 ```
 
 #### 🟢 GREEN (Minimal requireRole)
@@ -811,6 +1061,7 @@ class AuthService
             echo '';
             throw new \RuntimeException('exiting');
         }
+        return ['success' => true, 'message' => 'User has required role.'];
     }
 }
 ```
@@ -847,6 +1098,160 @@ class View
     public function __construct($viewsPath = null)
     {
         $this->viewsPath = $viewsPath ?: __DIR__ . '/../Views/';
+    }
+```
+
+---
+
+## Additional Test Coverage (DAO Layer)
+
+### 🔴 RED (DAO tests from tests/Unit/DAO/UserDAOTest.php)
+```30:75:/workspace/tests/Unit/DAO/UserDAOTest.php
+    /** @test */
+    public function it_should_find_user_by_school_id()
+    {
+        $schoolId = 'UT_SID_' . uniqid();
+        $expectedUserData = [
+            'user_id' => 1,
+            'school_id' => $schoolId,
+            'full_name' => 'John Doe',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A',
+            'password' => 'hashed_password',
+            'created_at' => '2024-01-01 00:00:00',
+            'updated_at' => '2024-01-01 00:00:00'
+        ];
+        
+        // Create UserDAO with mock PDO
+        $userDAO = $this->createUserDAOWithMockPDO();
+        
+        // Set up mock expectations
+        $this->pdoMock
+            ->expects($this->once())
+            ->method('prepare')
+            ->with("SELECT * FROM users WHERE school_id = ?")
+            ->willReturn($this->pdoStatementMock);
+            
+        $this->pdoStatementMock
+            ->expects($this->once())
+            ->method('execute')
+            ->with([$schoolId]);
+            
+        $this->pdoStatementMock
+            ->expects($this->once())
+            ->method('fetch')
+            ->with(PDO::FETCH_ASSOC)
+            ->willReturn($expectedUserData);
+
+        $found = $userDAO->findBySchoolId($schoolId);
+        
+        // Should return User object, not array
+        $this->assertInstanceOf(User::class, $found);
+        $this->assertEquals($schoolId, $found->getSchoolId());
+        $this->assertEquals('John Doe', $found->getFullName());
+        $this->assertEquals('student', $found->getRole());
+    }
+```
+
+```244:292:/workspace/tests/Unit/DAO/UserDAOTest.php
+    /** @test */
+    public function it_should_create_user_successfully()
+    {
+        $userData = [
+            'school_id' => 'NEW_USER_123',
+            'full_name' => 'New User',
+            'role' => 'student',
+            'year_level' => '2nd',
+            'section' => 'B',
+            'password' => 'hashed_password'
+        ];
+        
+        $user = new User($userData);
+        $expectedUserId = 999;
+        
+        // Create UserDAO with mock PDO
+        $userDAO = $this->createUserDAOWithMockPDO();
+        
+        // Set up mock expectations
+        $this->pdoMock
+            ->expects($this->once())
+            ->method('prepare')
+            ->with("INSERT INTO users (school_id, full_name, password, role, year_level, section, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())")
+            ->willReturn($this->pdoStatementMock);
+            
+        $this->pdoStatementMock
+            ->expects($this->once())
+            ->method('execute')
+            ->with([
+                'NEW_USER_123',
+                'New User', 
+                'hashed_password',
+                'student',
+                '2nd',
+                'B'
+            ])
+            ->willReturn(true);
+            
+        $this->pdoMock
+            ->expects($this->once())
+            ->method('lastInsertId')
+            ->willReturn((string)$expectedUserId);
+
+        $result = $userDAO->create($user);
+        
+        $this->assertEquals($expectedUserId, $result);
+    }
+```
+
+### 🔴 RED (Model tests from tests/Unit/Models/UserTest.php)
+```12:35:/workspace/tests/Unit/Models/UserTest.php
+    /** @test */
+    public function it_should_create_user_with_data()
+    {
+        $userData = [
+            'user_id' => 1,
+            'school_id' => 'TEST123',
+            'full_name' => 'John Doe',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A',
+            'password' => 'hashed_password'
+        ];
+
+        $user = new User($userData);
+
+        $this->assertEquals(1, $user->getUserId());
+        $this->assertEquals('TEST123', $user->getSchoolId());
+        $this->assertEquals('John Doe', $user->getFullName());
+        $this->assertEquals('student', $user->getRole());
+        $this->assertEquals('1st', $user->getYearLevel());
+        $this->assertEquals('A', $user->getSection());
+        $this->assertEquals('hashed_password', $user->getPassword());
+    }
+```
+
+```60:75:/workspace/tests/Unit/Models/UserTest.php
+    /** @test */
+    public function it_should_convert_to_array()
+    {
+        $userData = [
+            'user_id' => 1,
+            'school_id' => 'TEST123',
+            'full_name' => 'John Doe',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A',
+            'password' => 'hashed_password',
+            'created_at' => '2024-01-01 00:00:00',
+            'updated_at' => '2024-01-01 00:00:00'
+        ];
+
+        $user = new User($userData);
+        $array = $user->toArray();
+
+        $this->assertEquals($userData, $array);
     }
 ```
 
