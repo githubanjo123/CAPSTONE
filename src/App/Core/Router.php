@@ -65,11 +65,18 @@ class Router
 
         // Remove subdirectory from path if it exists
         $scriptName = $_SERVER['SCRIPT_NAME'];
-        $subdirectory = dirname($scriptName);
-        if ($subdirectory !== '/' && strpos($path, $subdirectory) === 0) {
-            $path = substr($path, strlen($subdirectory));
-            if (empty($path)) {
-                $path = '/';
+        $scriptDir = dirname($scriptName);
+        // If app is served from /.../public, also consider stripping the parent
+        $parentDir = rtrim(dirname($scriptDir), '/');
+        $candidates = array_unique(array_filter([
+            $scriptDir,
+            $parentDir && substr($scriptDir, -7) === '/public' ? $parentDir : null,
+        ]));
+        foreach ($candidates as $base) {
+            if ($base !== '/' && $base !== '.' && strpos($path, $base) === 0) {
+                $path = substr($path, strlen($base));
+                $path = $path === '' ? '/' : $path;
+                break;
             }
         }
 
@@ -107,12 +114,17 @@ class Router
         }
 
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        $subdirectory = dirname($scriptName);
-        
-        if ($subdirectory !== '/' && $subdirectory !== '.' && strpos($path, $subdirectory) === 0) {
-            $path = substr($path, strlen($subdirectory));
-            if ($path === '') {
-                $path = '/';
+        $scriptDir = dirname($scriptName);
+        $parentDir = rtrim(dirname($scriptDir), '/');
+        $candidates = array_unique(array_filter([
+            $scriptDir,
+            $parentDir && substr($scriptDir, -7) === '/public' ? $parentDir : null,
+        ]));
+        foreach ($candidates as $base) {
+            if ($base !== '/' && $base !== '.' && strpos($path, $base) === 0) {
+                $path = substr($path, strlen($base));
+                $path = $path === '' ? '/' : $path;
+                break;
             }
         }
 
