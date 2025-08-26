@@ -4,14 +4,17 @@ namespace App\Services\Auth;
 
 use App\DAO\Auth\UserDAO;
 use App\Models\User;
+use App\Services\User\UserService;
 
 class AuthService
 {
     private $userDAO;
+    private $userService;
 
-    public function __construct(UserDAO $userDAO = null)
+    public function __construct(UserDAO $userDAO = null, UserService $userService = null)
     {
         $this->userDAO = $userDAO ?? new UserDAO();
+        $this->userService = $userService ?? new UserService();
     }
 
     /**
@@ -85,7 +88,7 @@ class AuthService
         $user = new User($userData);
 
         // Validate user data
-        $validationErrors = $user->validate();
+        $validationErrors = $this->userService->validate($user);
         if (!empty($validationErrors)) {
             return [
                 'success' => false,
@@ -103,8 +106,8 @@ class AuthService
         }
 
         // Generate and hash default password
-        $defaultPassword = $user->generateDefaultPassword();
-        $hashedPassword = $user->hashPassword($defaultPassword);
+        $defaultPassword = $this->userService->generateDefaultPassword($user);
+        $hashedPassword = $this->userService->hashPassword($defaultPassword);
         $user->setPassword($hashedPassword);
 
         // Save to database
@@ -143,7 +146,7 @@ class AuthService
         $user = new User(array_merge($existingUser->toArray(), $userData));
 
         // Validate updated user data
-        $validationErrors = $user->validate();
+        $validationErrors = $this->userService->validate($user);
         if (!empty($validationErrors)) {
             return [
                 'success' => false,

@@ -27,7 +27,7 @@ class UserService implements UserServiceInterface
         $user = new User($data);
         
         // Basic validation
-        $validationErrors = $user->validate();
+        $validationErrors = $this->validate($user);
         if (!empty($validationErrors)) {
             return [
                 'success' => false,
@@ -45,8 +45,8 @@ class UserService implements UserServiceInterface
         }
 
         // Generate and hash default password
-        $defaultPassword = $user->generateDefaultPassword();
-        $hashedPassword = $user->hashPassword($defaultPassword);
+        $defaultPassword = $this->generateDefaultPassword($user);
+        $hashedPassword = $this->hashPassword($defaultPassword);
         $user->setPassword($hashedPassword);
 
         // Create user
@@ -86,7 +86,7 @@ class UserService implements UserServiceInterface
         $user = new User($updatedData);
 
         // Validate updated data
-        $validationErrors = $user->validate();
+        $validationErrors = $this->validate($user);
         if (!empty($validationErrors)) {
             return [
                 'success' => false,
@@ -160,7 +160,7 @@ class UserService implements UserServiceInterface
     }
 
     /**
-     * Get users by role (returns array of User objects)
+     * Get users by role
      */
     public function getUsersByRole($role)
     {
@@ -168,11 +168,11 @@ class UserService implements UserServiceInterface
     }
 
     /**
-     * Get students by year and section (returns array of User objects)
+     * Get students by year and section
      */
-    public function getStudentsByYearSection($yearLevel, $section)
+    public function getStudentsByYearSection($year_level, $section)
     {
-        return $this->userDAO->getStudentsByYearSection($yearLevel, $section);
+        return $this->userDAO->getStudentsByYearSection($year_level, $section);
     }
 
     /**
@@ -197,11 +197,95 @@ class UserService implements UserServiceInterface
     public function usersToArray($users)
     {
         if (is_array($users)) {
-            return array_map(function($user) {
-                return $user instanceof User ? $user->toArray() : $user;
-            }, $users);
+            return array_map(fn($user) => $user->toArray(), $users);
+        }
+        return $users->toArray();
+    }
+
+    // Business Logic Methods (moved from User model)
+
+    /**
+     * Generate default password for user
+     */
+    public function generateDefaultPassword(User $user): string
+    {
+        if (empty($user->getSchoolId()) || empty($user->getFullName())) {
+            throw new \InvalidArgumentException('School ID and full name are required to generate password');
         }
         
-        return $users instanceof User ? $users->toArray() : $users;
+        return $user->getSchoolId() . $user->getFullName();
+    }
+
+    /**
+     * Hash password
+     */
+    public function hashPassword(string $plainPassword): string
+    {
+        return password_hash($plainPassword, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(User $user): bool
+    {
+        return $user->getRole() === 'admin';
+    }
+
+    /**
+     * Check if user is faculty
+     */
+    public function isFaculty(User $user): bool
+    {
+        return $user->getRole() === 'faculty';
+    }
+
+    /**
+     * Check if user is student
+     */
+    public function isStudent(User $user): bool
+    {
+        return $user->getRole() === 'student';
+    }
+
+    /**
+     * Validate user data
+     */
+    public function validate(User $user): array
+    {
+        $errors = [];
+
+        if (empty($user->getSchoolId())) {
+            $errors[] = 'School ID is required';
+        }
+
+        if (empty($user->getFullName())) {
+            $errors[] = 'Full name is required';
+        }
+
+        if (empty($user->getRole())) {
+            $errors[] = 'Role is required';
+        } elseif (!in_array($user->getRole(), ['admin', 'faculty', 'student'])) {
+            $errors[] = 'Invalid role';
+        }
+
+        if ($user->getRole() === 'student') {
+            if (empty($user->getYearLevel())) {
+                $errors[] = 'Year level is required for students';
+            }
+            if (empty($user->getSection())) {
+                $errors[] = 'Section is required for students';
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Check if user data is valid
+     */
+    public function isValid(User $user): bool
+    {
+        return empty($this->validate($user));
     }
 }

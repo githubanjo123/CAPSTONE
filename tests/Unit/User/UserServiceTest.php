@@ -352,4 +352,207 @@ class UserServiceTest extends TestCase
         $this->assertIsArray($usersArray[0]);
         $this->assertEquals('TEST', $usersArray[0]['school_id']);
     }
+
+    // Business Logic Tests (moved from User model)
+
+    /** @test */
+    public function it_should_generate_default_password()
+    {
+        $user = new User([
+            'school_id' => 'TEST123',
+            'full_name' => 'John Doe'
+        ]);
+
+        $defaultPassword = $this->userService->generateDefaultPassword($user);
+
+        $this->assertEquals('TEST123John Doe', $defaultPassword);
+    }
+
+    /** @test */
+    public function it_should_throw_exception_when_generating_password_without_required_data()
+    {
+        $user = new User(['school_id' => 'TEST123']); // Missing full_name
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('School ID and full name are required to generate password');
+
+        $this->userService->generateDefaultPassword($user);
+    }
+
+    /** @test */
+    public function it_should_hash_password()
+    {
+        $plainPassword = 'testpassword123';
+
+        $hashedPassword = $this->userService->hashPassword($plainPassword);
+
+        $this->assertNotEquals($plainPassword, $hashedPassword);
+        $this->assertTrue(password_verify($plainPassword, $hashedPassword));
+    }
+
+    /** @test */
+    public function it_should_check_if_user_is_admin()
+    {
+        $adminUser = new User(['role' => 'admin']);
+        $studentUser = new User(['role' => 'student']);
+
+        $this->assertTrue($this->userService->isAdmin($adminUser));
+        $this->assertFalse($this->userService->isAdmin($studentUser));
+    }
+
+    /** @test */
+    public function it_should_check_if_user_is_faculty()
+    {
+        $facultyUser = new User(['role' => 'faculty']);
+        $studentUser = new User(['role' => 'student']);
+
+        $this->assertTrue($this->userService->isFaculty($facultyUser));
+        $this->assertFalse($this->userService->isFaculty($studentUser));
+    }
+
+    /** @test */
+    public function it_should_check_if_user_is_student()
+    {
+        $studentUser = new User(['role' => 'student']);
+        $facultyUser = new User(['role' => 'faculty']);
+
+        $this->assertTrue($this->userService->isStudent($studentUser));
+        $this->assertFalse($this->userService->isStudent($facultyUser));
+    }
+
+    /** @test */
+    public function it_should_validate_required_fields()
+    {
+        $user = new User([
+            'school_id' => '',
+            'full_name' => '',
+            'role' => ''
+        ]);
+
+        $errors = $this->userService->validate($user);
+
+        $this->assertContains('School ID is required', $errors);
+        $this->assertContains('Full name is required', $errors);
+        $this->assertContains('Role is required', $errors);
+    }
+
+    /** @test */
+    public function it_should_validate_role_values()
+    {
+        $user = new User([
+            'school_id' => 'TEST123',
+            'full_name' => 'Test User',
+            'role' => 'invalid_role'
+        ]);
+
+        $errors = $this->userService->validate($user);
+
+        $this->assertContains('Invalid role', $errors);
+    }
+
+    /** @test */
+    public function it_should_validate_student_specific_fields()
+    {
+        $user = new User([
+            'school_id' => 'TEST123',
+            'full_name' => 'Test Student',
+            'role' => 'student',
+            'year_level' => '',
+            'section' => ''
+        ]);
+
+        $errors = $this->userService->validate($user);
+
+        $this->assertContains('Year level is required for students', $errors);
+        $this->assertContains('Section is required for students', $errors);
+    }
+
+    /** @test */
+    public function it_should_not_require_year_level_and_section_for_non_students()
+    {
+        $facultyUser = new User([
+            'school_id' => 'FAC123',
+            'full_name' => 'Faculty Member',
+            'role' => 'faculty'
+        ]);
+
+        $adminUser = new User([
+            'school_id' => 'ADM123',
+            'full_name' => 'Admin User',
+            'role' => 'admin'
+        ]);
+
+        $this->assertEmpty($this->userService->validate($facultyUser));
+        $this->assertEmpty($this->userService->validate($adminUser));
+    }
+
+    /** @test */
+    public function it_should_pass_validation_with_valid_data()
+    {
+        $validStudent = new User([
+            'school_id' => 'STU123',
+            'full_name' => 'Valid Student',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A'
+        ]);
+
+        $validFaculty = new User([
+            'school_id' => 'FAC123',
+            'full_name' => 'Valid Faculty',
+            'role' => 'faculty'
+        ]);
+
+        $validAdmin = new User([
+            'school_id' => 'ADM123',
+            'full_name' => 'Valid Admin',
+            'role' => 'admin'
+        ]);
+
+        $this->assertEmpty($this->userService->validate($validStudent));
+        $this->assertEmpty($this->userService->validate($validFaculty));
+        $this->assertEmpty($this->userService->validate($validAdmin));
+    }
+
+    /** @test */
+    public function it_should_check_if_user_is_valid()
+    {
+        $validUser = new User([
+            'school_id' => 'VALID123',
+            'full_name' => 'Valid User',
+            'role' => 'student',
+            'year_level' => '1st',
+            'section' => 'A'
+        ]);
+
+        $invalidUser = new User([
+            'school_id' => '',
+            'full_name' => 'Invalid User',
+            'role' => 'student'
+        ]);
+
+        $this->assertTrue($this->userService->isValid($validUser));
+        $this->assertFalse($this->userService->isValid($invalidUser));
+    }
+
+    /** @test */
+    public function it_should_handle_all_roles_correctly()
+    {
+        $roles = ['admin', 'faculty', 'student'];
+
+        foreach ($roles as $role) {
+            $user = new User([
+                'school_id' => 'TEST123',
+                'full_name' => 'Test User',
+                'role' => $role,
+                'year_level' => $role === 'student' ? '1st' : null,
+                'section' => $role === 'student' ? 'A' : null
+            ]);
+
+            $this->assertEmpty($this->userService->validate($user), "Validation failed for role: $role");
+            $this->assertEquals($role === 'admin', $this->userService->isAdmin($user));
+            $this->assertEquals($role === 'faculty', $this->userService->isFaculty($user));
+            $this->assertEquals($role === 'student', $this->userService->isStudent($user));
+        }
+    }
 }

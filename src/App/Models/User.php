@@ -75,30 +75,8 @@ class User
     public function setYearLevel(?string $year_level): self { $this->year_level = $year_level; return $this; }
     public function setSection(?string $section): self { $this->section = $section; return $this; }
 
-    // Business Logic Methods
-
     /**
-     * Generate default password for user
-     */
-    public function generateDefaultPassword(): string
-    {
-        if (empty($this->school_id) || empty($this->full_name)) {
-            throw new \InvalidArgumentException('School ID and full name are required to generate password');
-        }
-        
-        return $this->school_id . $this->full_name;
-    }
-
-    /**
-     * Hash password
-     */
-    public function hashPassword(string $plainPassword): string
-    {
-        return password_hash($plainPassword, PASSWORD_DEFAULT);
-    }
-
-    /**
-     * Verify password
+     * Verify password - kept in model as it's about the entity's own data
      */
     public function verifyPassword(string $inputPassword): bool
     {
@@ -113,70 +91,5 @@ class User
             // Legacy plain text password support
             return $inputPassword === $this->password;
         }
-    }
-
-    /**
-     * Check if user is admin
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'admin';
-    }
-
-    /**
-     * Check if user is faculty
-     */
-    public function isFaculty(): bool
-    {
-        return $this->role === 'faculty';
-    }
-
-    /**
-     * Check if user is student
-     */
-    public function isStudent(): bool
-    {
-        return $this->role === 'student';
-    }
-
-    /**
-     * Validate user data
-     */
-    public function validate(): array
-    {
-        $errors = [];
-
-        if (empty($this->school_id)) {
-            $errors[] = 'School ID is required';
-        }
-
-        if (empty($this->full_name)) {
-            $errors[] = 'Full name is required';
-        }
-
-        if (empty($this->role)) {
-            $errors[] = 'Role is required';
-        } elseif (!in_array($this->role, ['admin', 'faculty', 'student'])) {
-            $errors[] = 'Invalid role';
-        }
-
-        if ($this->role === 'student') {
-            if (empty($this->year_level)) {
-                $errors[] = 'Year level is required for students';
-            }
-            if (empty($this->section)) {
-                $errors[] = 'Section is required for students';
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Check if user data is valid
-     */
-    public function isValid(): bool
-    {
-        return empty($this->validate());
     }
 }
