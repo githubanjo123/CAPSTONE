@@ -99,7 +99,12 @@ class SubjectDAO
                 $subject->getSemester()
             ]);
             
-            return $result ? $this->db->lastInsertId() : false;
+            if ($result) {
+                $subject->setSubjectId($this->db->lastInsertId());
+                return $subject;
+            }
+            
+            return null;
         } catch (\PDOException $e) {
             error_log("Error creating subject: " . $e->getMessage());
             throw $e;
@@ -114,12 +119,11 @@ class SubjectDAO
         try {
             $stmt = $this->db->prepare("
                 UPDATE subjects 
-                SET subject_code = ?, subject_name = ?, description = ?, 
-                    units = ?, year_level = ?, semester = ?, updated_at = CURRENT_TIMESTAMP
+                SET subject_code = ?, subject_name = ?, description = ?, units = ?, year_level = ?, semester = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE subject_id = ?
             ");
             
-            return $stmt->execute([
+            $result = $stmt->execute([
                 $subject->getSubjectCode(),
                 $subject->getSubjectName(),
                 $subject->getDescription(),
@@ -128,6 +132,8 @@ class SubjectDAO
                 $subject->getSemester(),
                 $subject->getSubjectId()
             ]);
+            
+            return $result;
         } catch (\PDOException $e) {
             error_log("Error updating subject: " . $e->getMessage());
             throw $e;
@@ -208,7 +214,7 @@ class SubjectDAO
     public function search($query)
     {
         try {
-            $searchTerm = "%{$query}%";
+            $searchTerm = '%' . $query . '%';
             $stmt = $this->db->prepare("
                 SELECT * FROM subjects 
                 WHERE subject_code LIKE ? OR subject_name LIKE ? OR description LIKE ?
@@ -235,15 +241,16 @@ class SubjectDAO
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT COUNT(*) FROM subject_faculty 
+                SELECT COUNT(*) as count FROM subject_faculty 
                 WHERE subject_id = ?
             ");
             $stmt->execute([$subjectId]);
             
-            return $stmt->fetchColumn() > 0;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
         } catch (\PDOException $e) {
             error_log("Error checking faculty assignments: " . $e->getMessage());
-            throw $e;
+            return false;
         }
     }
 
@@ -254,15 +261,16 @@ class SubjectDAO
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT COUNT(*) FROM exams 
+                SELECT COUNT(*) as count FROM exams 
                 WHERE subject_id = ?
             ");
             $stmt->execute([$subjectId]);
             
-            return $stmt->fetchColumn() > 0;
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
         } catch (\PDOException $e) {
             error_log("Error checking exams: " . $e->getMessage());
-            throw $e;
+            return false;
         }
     }
 
@@ -273,10 +281,9 @@ class SubjectDAO
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT s.*, GROUP_CONCAT(u.full_name SEPARATOR ', ') as assigned_faculty
+                SELECT s.*, COUNT(sf.faculty_id) as faculty_count 
                 FROM subjects s
                 LEFT JOIN subject_faculty sf ON s.subject_id = sf.subject_id
-                LEFT JOIN users u ON sf.faculty_id = u.user_id
                 GROUP BY s.subject_id
                 ORDER BY s.year_level, s.semester, s.subject_name
             ");
@@ -284,7 +291,8 @@ class SubjectDAO
             
             $subjects = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $subjects[] = new Subject($row);
+                $subject = new Subject($row);
+                $subjects[] = $subject;
             }
             
             return $subjects;
