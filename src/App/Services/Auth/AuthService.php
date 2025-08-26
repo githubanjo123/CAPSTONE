@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\DAO\Auth\UserDAO;
+use App\Models\User;
 
 class AuthService
 {
@@ -30,10 +31,18 @@ class AuthService
         $school_id = trim($school_id);
         $password = trim($password);
 
-        // Authenticate user
+        // Get user from DAO (this just retrieves the user, no authentication yet)
         $user = $this->userDAO->authenticate($school_id, $password);
 
         if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'User not found.'
+            ];
+        }
+
+        // Now perform authentication business logic using the User model
+        if (!$user->verifyPassword($password)) {
             return [
                 'success' => false,
                 'message' => 'Invalid School ID or password.'
@@ -46,56 +55,117 @@ class AuthService
         }
 
         // Store user data in session
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['school_id'] = $user['school_id'];
-        $_SESSION['full_name'] = $user['full_name'];
-        $_SESSION['role'] = $user['role'];
-        $_SESSION['year_level'] = $user['year_level'] ?? null;
-        $_SESSION['section'] = $user['section'] ?? null;
+        $_SESSION['user_id'] = $user->getUserId();
+        $_SESSION['school_id'] = $user->getSchoolId();
+        $_SESSION['full_name'] = $user->getFullName();
+        $_SESSION['role'] = $user->getRole();
+        $_SESSION['year_level'] = $user->getYearLevel();
+        $_SESSION['section'] = $user->getSection();
 
         return [
             'success' => true,
             'message' => 'Login successful!',
             'user' => [
-                'user_id' => $user['user_id'],
-                'school_id' => $user['school_id'],
-                'full_name' => $user['full_name'],
-                'role' => $user['role'],
-                'year_level' => $user['year_level'] ?? null,
-                'section' => $user['section'] ?? null
+                'user_id' => $user->getUserId(),
+                'school_id' => $user->getSchoolId(),
+                'full_name' => $user->getFullName(),
+                'role' => $user->getRole(),
+                'year_level' => $user->getYearLevel(),
+                'section' => $user->getSection()
             ]
         ];
     }
 
     /**
-     * Logout current user
+     * Create a new user with business logic
      */
-    public function logout()
+    public function createUser(array $userData): array
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+        // Create User model from data
+        $user = new User($userData);
+
+        // Validate user data
+        $validationErrors = $user->validate();
+        if (!empty($validationErrors)) {
+            return [
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validationErrors
+            ];
         }
 
-        // Clear session data
-        session_unset();
-        
-        // Destroy session
-        session_destroy();
-        
-        // Clear the $_SESSION array as well
-        $_SESSION = [];
-        
-        // Additional cleanup to ensure session is completely cleared
-        if (function_exists('session_write_close')) {
-            session_write_close();
+        // Check if school ID already exists
+        if ($this->userDAO->schoolIdExists($user->getSchoolId())) {
+            return [
+                'success' => false,
+                'message' => 'School ID already exists'
+            ];
         }
-        
-        // Force clear the session array again to be absolutely sure
-        $_SESSION = [];
+
+        // Generate and hash default password
+        $defaultPassword = $user->generateDefaultPassword();
+        $hashedPassword = $user->hashPassword($defaultPassword);
+        $user->setPassword($hashedPassword);
+
+        // Save to database
+        $userId = $this->userDAO->create($user);
+
+        if ($userId) {
+            return [
+                'success' => true,
+                'message' => 'User created successfully',
+                'user_id' => $userId,
+                'default_password' => $defaultPassword // Return for admin to share with user
+            ];
+        } else {
+            return [
+                'success' => false,
+                'message' => 'Failed to create user'
+            ];
+        }
+    }
+
+    /**
+     * Update user with business logic
+     */
+    public function updateUser($userId, array $userData): array
+    {
+        // Get existing user
+        $existingUser = $this->userDAO->findById($userId);
+        if (!$existingUser) {
+            return [
+                'success' => false,
+                'message' => 'User not found'
+            ];
+        }
+
+        // Update user data
+        $user = new User(array_merge($existingUser->toArray(), $userData));
+
+        // Validate updated user data
+        $validationErrors = $user->validate();
+        if (!empty($validationErrors)) {
+            return [
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validationErrors
+            ];
+        }
+
+        // Check if school ID already exists (excluding current user)
+        if ($this->userDAO->schoolIdExists($user->getSchoolId(), $userId)) {
+            return [
+                'success' => false,
+                'message' => 'School ID already exists'
+            ];
+        }
+
+        // Update in database
+        $success = $this->userDAO->update($userId, $user);
 
         return [
-            'success' => true,
-            'message' => 'Logged out successfully.'
+            'success' => $success,
+            'message' => $success ? 'User updated successfully' : 'Failed to update user'
         ];
     }
 
@@ -108,21 +178,15 @@ class AuthService
             session_start();
         }
 
-        return isset($_SESSION['user_id']);
+        return isset($_SESSION['user_id']) && isset($_SESSION['role']);
     }
 
     /**
-     * Get current user data
+     * Get current user information
      */
     public function getCurrentUser()
     {
         if (!$this->isAuthenticated()) {
-            return null;
-        }
-
-        // Check if all required session variables exist
-        if (!isset($_SESSION['user_id']) || !isset($_SESSION['school_id']) || 
-            !isset($_SESSION['full_name']) || !isset($_SESSION['role'])) {
             return null;
         }
 
@@ -137,54 +201,77 @@ class AuthService
     }
 
     /**
-     * Require authentication
+     * Get current user as User model
      */
-    public function requireAuth()
+    public function getCurrentUserModel(): ?User
     {
         if (!$this->isAuthenticated()) {
-            return [
-                'success' => false,
-                'message' => 'Authentication required.',
-                'redirect' => '/login'
-            ];
+            return null;
         }
+
+        return $this->userDAO->findById($_SESSION['user_id']);
+    }
+
+    /**
+     * Logout user
+     */
+    public function logout()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Clear all session data
+        $_SESSION = [];
+
+        // Destroy session cookie
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000,
+                $params["path"], $params["domain"],
+                $params["secure"], $params["httponly"]
+            );
+        }
+
+        // Destroy session
+        session_destroy();
 
         return [
             'success' => true,
-            'message' => 'User is authenticated.'
+            'message' => 'Logged out successfully'
         ];
     }
 
     /**
-     * Require specific role
+     * Change user password
      */
-    public function requireRole($requiredRole)
+    public function changePassword($userId, $currentPassword, $newPassword): array
     {
-        $authResult = $this->requireAuth();
-        if (!$authResult['success']) {
-            return $authResult;
+        $user = $this->userDAO->findById($userId);
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'User not found'
+            ];
         }
 
-        $user = $this->getCurrentUser();
-        if (!$user || !isset($user['role'])) {
+        // Verify current password
+        if (!$user->verifyPassword($currentPassword)) {
             return [
                 'success' => false,
-                'message' => 'User data incomplete.',
-                'redirect' => '/login'
+                'message' => 'Current password is incorrect'
             ];
         }
-        
-        if ($user['role'] !== $requiredRole) {
-            return [
-                'success' => false,
-                'message' => 'Insufficient permissions.',
-                'redirect' => '/login'
-            ];
-        }
+
+        // Hash new password and update
+        $hashedPassword = $user->hashPassword($newPassword);
+        $user->setPassword($hashedPassword);
+
+        $success = $this->userDAO->update($userId, $user);
 
         return [
-            'success' => true,
-            'message' => 'User has required role.'
+            'success' => $success,
+            'message' => $success ? 'Password changed successfully' : 'Failed to change password'
         ];
     }
 }
