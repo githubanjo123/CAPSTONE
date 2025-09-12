@@ -75,6 +75,10 @@ $router->post('/admin/users/add-student', function() {
     (new AdminController())->addStudent();
 });
 
+$router->get('/admin/users/get-student-data', function() {
+    (new AdminController())->getStudentData();
+});
+
 $router->post('/admin/users/edit-student', function() {
     (new AdminController())->editStudent();
 });

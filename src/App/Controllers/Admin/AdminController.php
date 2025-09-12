@@ -255,6 +255,38 @@ class AdminController
     }
 
     /**
+     * Get student data for editing (AJAX endpoint)
+     */
+    public function getStudentData()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            return;
+        }
+
+        $userId = $_GET['user_id'] ?? null;
+        if (!$userId) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'User ID is required']);
+            return;
+        }
+
+        $user = $this->userService->getUserById($userId);
+        if (!$user) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+            return;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'data' => $user->toArray()
+        ]);
+    }
+
+    /**
      * Handle edit student request
      */
     public function editStudent()
