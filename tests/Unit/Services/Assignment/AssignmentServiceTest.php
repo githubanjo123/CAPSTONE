@@ -7,7 +7,7 @@ use App\Services\Assignment\AssignmentService;
 use App\Models\SubjectAssignment;
 use App\DAO\AssignmentDAO;
 use App\DAO\SubjectDAO;
-use App\DAO\UserDAO;
+use App\DAO\Auth\UserDAO;
 
 class AssignmentServiceTest extends TestCase
 {

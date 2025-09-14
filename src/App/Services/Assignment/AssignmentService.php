@@ -5,7 +5,7 @@ namespace App\Services\Assignment;
 use App\Models\SubjectAssignment;
 use App\DAO\AssignmentDAO;
 use App\DAO\SubjectDAO;
-use App\DAO\UserDAO;
+use App\DAO\Auth\UserDAO;
 use App\Interfaces\AssignmentServiceInterface;
 
 class AssignmentService implements AssignmentServiceInterface
@@ -17,11 +17,11 @@ class AssignmentService implements AssignmentServiceInterface
     public function __construct(
         AssignmentDAO $assignmentDAO = null,
         SubjectDAO $subjectDAO = null,
-        UserDAO $userDAO = null
+        \App\DAO\Auth\UserDAO $userDAO = null
     ) {
         $this->assignmentDAO = $assignmentDAO ?? new AssignmentDAO();
         $this->subjectDAO = $subjectDAO ?? new SubjectDAO();
-        $this->userDAO = $userDAO ?? new UserDAO();
+        $this->userDAO = $userDAO ?? new \App\DAO\Auth\UserDAO();
     }
 
     /**
