@@ -228,6 +228,7 @@
                 tabContent.classList.add('active');
                 console.log('Tab content shown:', tabName); // Debug log
                 
+                
                 // Initialize tab-specific functionality
                 if (tabName === 'assignments' && typeof initializeAssignments === 'function') {
                     console.log('Initializing assignments...');
@@ -256,6 +257,7 @@
             // Save current tab to localStorage
             localStorage.setItem('adminCurrentTab', tabName);
         }
+        
 
         // Year-Section Tab Switching
         document.addEventListener('DOMContentLoaded', function() {

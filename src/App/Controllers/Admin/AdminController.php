@@ -74,6 +74,82 @@ class AdminController
     }
 
     /**
+     * Show users management tab
+     */
+    public function users()
+    {
+        $currentUser = $this->authService->getCurrentUser();
+        
+        // Get user data
+        $students = $this->userService->getUsersByRole('student');
+        $faculty = $this->userService->getUsersByRole('faculty');
+        
+        // Convert User objects to arrays for view compatibility
+        $studentsArray = $this->userService->usersToArray($students);
+        $facultyArray = $this->userService->usersToArray($faculty);
+        
+        $data = [
+            'admin' => $currentUser,
+            'students' => $studentsArray,
+            'faculty' => $facultyArray,
+            'yearSections' => $this->getYearSections($studentsArray)
+        ];
+        
+        // Check if this is an AJAX request
+        if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            // Return only the content part for AJAX
+            $this->view->display('admin.manage-users-content', $data);
+        } else {
+            // Return full page
+            $this->view->display('admin.manage-users', $data);
+        }
+    }
+
+    /**
+     * Show subjects management tab
+     */
+    public function subjects()
+    {
+        $currentUser = $this->authService->getCurrentUser();
+        
+        // Get subjects data
+        $subjects = $this->subjectService->getAllSubjects();
+        
+        $data = [
+            'admin' => $currentUser,
+            'subjects' => $subjects,
+            'yearLevels' => $this->subjectService->getYearLevels(),
+            'semesters' => $this->subjectService->getSemesters()
+        ];
+        
+        $this->view->display('admin.manage-subjects', $data);
+    }
+
+    /**
+     * Show assignments management tab
+     */
+    public function assignments()
+    {
+        $currentUser = $this->authService->getCurrentUser();
+        
+        // Get assignments data
+        $assignments = $this->assignmentService->getAllAssignments();
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        
+        $data = [
+            'admin' => $currentUser,
+            'assignments' => $assignmentsArray,
+            'assignmentYearLevels' => $this->assignmentService->getYearLevels(),
+            'assignmentSections' => $this->assignmentService->getSections(),
+            'academicYears' => $this->assignmentService->getAcademicYears(),
+            'assignmentSemesters' => $this->assignmentService->getSemesters(),
+            'assignmentStatuses' => $this->assignmentService->getAssignmentStatuses()
+        ];
+        
+        $this->view->display('admin.manage-assignments', $data);
+    }
+
+    /**
      * Handle logout
      */
     public function logout()
