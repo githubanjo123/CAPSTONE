@@ -6,10 +6,14 @@
     <title>Admin Dashboard - Examination System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
                     colors: {
                         primary: {
                             50: '#fef2f2',
@@ -17,13 +21,13 @@
                             200: '#fecaca',
                             300: '#fca5a5',
                             400: '#f87171',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                            800: '#991b1b',
-                            900: '#7f1d1d',
+                            500: '#800000',
+                            600: '#7a0000',
+                            700: '#6b0000',
+                            800: '#5c0000',
+                            900: '#4d0000',
                         },
-                        grey: {
+                        secondary: {
                             50: '#f9fafb',
                             100: '#f3f4f6',
                             200: '#e5e7eb',
@@ -34,6 +38,18 @@
                             700: '#374151',
                             800: '#1f2937',
                             900: '#111827',
+                        },
+                        accent: {
+                            50: '#ffffff',
+                            100: '#ffffff',
+                            200: '#ffffff',
+                            300: '#ffffff',
+                            400: '#ffffff',
+                            500: '#ffffff',
+                            600: '#f3f4f6',
+                            700: '#e5e7eb',
+                            800: '#d1d5db',
+                            900: '#9ca3af',
                         }
                     }
                 }
@@ -41,25 +57,25 @@
         }
     </script>
 </head>
-<body class="bg-grey-50">
+<body class="bg-secondary-50 font-sans text-lg">
     <!-- Header Section -->
-    <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-white py-6 mb-8">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-800 text-accent-500 py-8 mb-8">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold mb-1">
-                        <i class="fas fa-tachometer-alt mr-2"></i>
+                    <h1 class="text-4xl font-bold mb-2">
+                        <i class="fas fa-tachometer-alt mr-3"></i>
                         Admin Dashboard
                     </h1>
-                    <p class="text-lg opacity-90">
+                    <p class="text-xl opacity-90">
                         Welcome back, <?= htmlspecialchars($admin['full_name'] ?? 'Admin') ?>
                     </p>
                 </div>
                 <div>
-                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/logout" class="bg-transparent border-2 border-white text-white px-6 py-2 rounded-full hover:bg-white hover:text-primary-600 transition-all duration-300">
+                    <button onclick="showLogoutConfirmation()" class="bg-transparent border-2 border-accent-500 text-accent-500 px-8 py-3 rounded-full hover:bg-accent-500 hover:text-primary-600 transition-all duration-300 text-lg font-semibold">
                         <i class="fas fa-sign-out-alt mr-2"></i>
                         Logout
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -94,30 +110,30 @@
             <?php unset($_SESSION['error_message']); ?>
         <?php endif; ?>
 
-        <!-- Tab Navigation -->
-        <div class="border-b-2 border-grey-200 mb-0">
+        <!-- Fixed Tab Navigation -->
+        <div class="sticky top-0 z-40 bg-secondary-50 border-b-2 border-secondary-200 mb-0">
             <div class="flex space-x-1">
-                <button class="bg-white text-primary-600 font-semibold px-6 py-4 rounded-t-lg border-b-2 border-primary-600 hover:bg-grey-50 transition-all duration-300" id="users-tab" onclick="showTab('users')">
-                    <i class="fas fa-users mr-2"></i>
+                <button class="bg-accent-500 text-primary-600 font-semibold px-8 py-5 rounded-t-lg border-b-2 border-primary-600 hover:bg-secondary-100 transition-all duration-300 text-lg" id="users-tab" onclick="showTab('users')">
+                    <i class="fas fa-users mr-3"></i>
                     Manage Users
                 </button>
-                <button class="text-grey-600 font-semibold px-6 py-4 rounded-t-lg hover:bg-white hover:text-primary-600 transition-all duration-300" id="subjects-tab" onclick="showTab('subjects')">
-                    <i class="fas fa-book mr-2"></i>
+                <button class="text-secondary-600 font-semibold px-8 py-5 rounded-t-lg hover:bg-accent-500 hover:text-primary-600 transition-all duration-300 text-lg" id="subjects-tab" onclick="showTab('subjects')">
+                    <i class="fas fa-book mr-3"></i>
                     Manage Subjects
                 </button>
-                <button class="text-grey-600 font-semibold px-6 py-4 rounded-t-lg hover:bg-white hover:text-primary-600 transition-all duration-300" id="assignments-tab" onclick="showTab('assignments')">
-                    <i class="fas fa-link mr-2"></i>
+                <button class="text-secondary-600 font-semibold px-8 py-5 rounded-t-lg hover:bg-accent-500 hover:text-primary-600 transition-all duration-300 text-lg" id="assignments-tab" onclick="showTab('assignments')">
+                    <i class="fas fa-link mr-3"></i>
                     Subject Assignments
                 </button>
-                <button class="text-grey-600 font-semibold px-6 py-4 rounded-t-lg hover:bg-white hover:text-primary-600 transition-all duration-300" id="reports-tab" onclick="showTab('reports')">
-                    <i class="fas fa-chart-bar mr-2"></i>
+                <button class="text-secondary-600 font-semibold px-8 py-5 rounded-t-lg hover:bg-accent-500 hover:text-primary-600 transition-all duration-300 text-lg" id="reports-tab" onclick="showTab('reports')">
+                    <i class="fas fa-chart-bar mr-3"></i>
                     Reports
                 </button>
             </div>
         </div>
 
         <!-- Tab Content -->
-        <div class="bg-white rounded-b-lg p-8 shadow-lg">
+        <div class="bg-accent-500 rounded-b-lg p-8 shadow-lg">
             <!-- Tab 1: Manage Users -->
             <div id="users" class="tab-content active">
                 <?php include 'manage-users.php'; ?>
@@ -177,7 +193,52 @@
         </div>
     </div>
 
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-accent-500 rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="p-8 text-center">
+                <div class="mb-6">
+                    <i class="fas fa-sign-out-alt text-6xl text-primary-600 mb-4"></i>
+                    <h3 class="text-2xl font-bold text-secondary-800 mb-2">Confirm Logout</h3>
+                    <p class="text-secondary-600 text-lg">Are you sure you want to logout from the admin panel?</p>
+                </div>
+                
+                <div class="flex justify-center space-x-4">
+                    <button onclick="hideLogoutConfirmation()" 
+                            class="px-6 py-3 bg-secondary-500 hover:bg-secondary-600 text-accent-500 rounded-lg font-semibold transition-all duration-300 text-lg">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancel
+                    </button>
+                    <a href="<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/logout" 
+                       class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-accent-500 rounded-lg font-semibold transition-all duration-300 text-lg">
+                        <i class="fas fa-check mr-2"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Logout Confirmation Functions
+        function showLogoutConfirmation() {
+            document.getElementById('logoutModal').classList.remove('hidden');
+        }
+
+        function hideLogoutConfirmation() {
+            document.getElementById('logoutModal').classList.add('hidden');
+        }
+
+        // Close logout modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutModal = document.getElementById('logoutModal');
+            logoutModal.addEventListener('click', function(e) {
+                if (e.target === logoutModal) {
+                    hideLogoutConfirmation();
+                }
+            });
+        });
+
         // Tab Switching
         function showTab(tabName) {
             console.log('showTab called with:', tabName); // Debug log
@@ -189,8 +250,8 @@
             
             // Remove active class from all tabs
             document.querySelectorAll('[id$="-tab"]').forEach(tab => {
-                tab.classList.remove('bg-white', 'text-primary-600', 'border-primary-600');
-                tab.classList.add('text-grey-600');
+                tab.classList.remove('bg-accent-500', 'text-primary-600', 'border-primary-600');
+                tab.classList.add('text-secondary-600');
             });
             
             // Show selected tab content
@@ -206,8 +267,8 @@
             // Add active class to selected tab
             const activeTab = document.getElementById(tabName + '-tab');
             if (activeTab) {
-                activeTab.classList.remove('text-grey-600');
-                activeTab.classList.add('bg-white', 'text-primary-600', 'border-primary-600');
+                activeTab.classList.remove('text-secondary-600');
+                activeTab.classList.add('bg-accent-500', 'text-primary-600', 'border-primary-600');
                 console.log('Tab button activated:', tabName + '-tab'); // Debug log
             } else {
                 console.error('Tab button not found:', tabName + '-tab'); // Debug log
