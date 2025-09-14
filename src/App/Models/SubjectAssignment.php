@@ -53,8 +53,6 @@ class SubjectAssignment
     public function getNotes() { return $this->notes; }
     public function getCreatedAt() { return $this->createdAt; }
     public function getUpdatedAt() { return $this->updatedAt; }
-    
-    // Additional field getters
     public function getSubjectCode() { return $this->subjectCode; }
     public function getSubjectName() { return $this->subjectName; }
     public function getFacultyName() { return $this->facultyName; }
@@ -69,14 +67,14 @@ class SubjectAssignment
     public function setSemester($semester) { $this->semester = $semester; }
     public function setStatus($status) { $this->status = $status; }
     public function setNotes($notes) { $this->notes = $notes; }
-    
-    // Additional field setters
+    public function setCreatedAt($createdAt) { $this->createdAt = $createdAt; }
+    public function setUpdatedAt($updatedAt) { $this->updatedAt = $updatedAt; }
     public function setSubjectCode($subjectCode) { $this->subjectCode = $subjectCode; }
     public function setSubjectName($subjectName) { $this->subjectName = $subjectName; }
     public function setFacultyName($facultyName) { $this->facultyName = $facultyName; }
 
     /**
-     * Convert to array
+     * Convert assignment to array
      */
     public function toArray(): array
     {
@@ -105,50 +103,44 @@ class SubjectAssignment
     {
         $errors = [];
 
+        // Required fields
         if (empty($this->subjectId)) {
-            $errors[] = 'Subject is required';
+            $errors[] = 'Subject ID is required';
         }
-
         if (empty($this->facultyId)) {
-            $errors[] = 'Faculty is required';
+            $errors[] = 'Faculty ID is required';
         }
-
         if (empty($this->yearLevel)) {
             $errors[] = 'Year level is required';
         }
-
         if (empty($this->section)) {
             $errors[] = 'Section is required';
         }
-
         if (empty($this->academicYear)) {
             $errors[] = 'Academic year is required';
         }
-
         if (empty($this->semester)) {
             $errors[] = 'Semester is required';
         }
 
-        if (!in_array($this->status, ['active', 'inactive', 'pending'])) {
-            $errors[] = 'Status must be active, inactive, or pending';
+        // Valid year levels
+        $validYearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+        if (!empty($this->yearLevel) && !in_array($this->yearLevel, $validYearLevels)) {
+            $errors[] = 'Invalid year level';
+        }
+
+        // Valid semesters
+        $validSemesters = ['1st Semester', '2nd Semester', 'Summer'];
+        if (!empty($this->semester) && !in_array($this->semester, $validSemesters)) {
+            $errors[] = 'Invalid semester';
+        }
+
+        // Valid status
+        $validStatuses = ['active', 'inactive', 'pending'];
+        if (!empty($this->status) && !in_array($this->status, $validStatuses)) {
+            $errors[] = 'Invalid status';
         }
 
         return $errors;
-    }
-
-    /**
-     * Check if assignment is active
-     */
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
-    }
-
-    /**
-     * Get assignment key for uniqueness check
-     */
-    public function getAssignmentKey(): string
-    {
-        return $this->subjectId . '_' . $this->yearLevel . '_' . $this->section . '_' . $this->academicYear . '_' . $this->semester;
     }
 }

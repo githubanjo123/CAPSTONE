@@ -11,9 +11,13 @@ class AssignmentDAO implements AssignmentDAOInterface
 {
     private $db;
 
-    public function __construct()
+    public function __construct($db = null)
     {
-        $this->db = Database::getInstance()->getConnection();
+        if ($db === null) {
+            $this->db = Database::getInstance()->getConnection();
+        } else {
+            $this->db = $db;
+        }
     }
 
     /**
@@ -25,18 +29,17 @@ class AssignmentDAO implements AssignmentDAOInterface
             $stmt = $this->db->prepare("
                 SELECT sa.*, s.subject_code, s.subject_name, u.full_name as faculty_name
                 FROM subject_assignments sa
-                JOIN subjects s ON sa.subject_id = s.subject_id
-                JOIN users u ON sa.faculty_id = u.user_id
-                ORDER BY sa.academic_year DESC, sa.year_level, sa.section, s.subject_name
+                LEFT JOIN subjects s ON sa.subject_id = s.subject_id
+                LEFT JOIN users u ON sa.faculty_id = u.user_id
+                ORDER BY sa.created_at DESC
             ");
+            
             $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            $assignments = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $assignments[] = new SubjectAssignment($row);
-            }
-            
-            return $assignments;
+            return array_map(function($row) {
+                return new SubjectAssignment($row);
+            }, $results);
         } catch (\PDOException $e) {
             error_log("Error getting all assignments: " . $e->getMessage());
             throw $e;
@@ -52,14 +55,19 @@ class AssignmentDAO implements AssignmentDAOInterface
             $stmt = $this->db->prepare("
                 SELECT sa.*, s.subject_code, s.subject_name, u.full_name as faculty_name
                 FROM subject_assignments sa
-                JOIN subjects s ON sa.subject_id = s.subject_id
-                JOIN users u ON sa.faculty_id = u.user_id
+                LEFT JOIN subjects s ON sa.subject_id = s.subject_id
+                LEFT JOIN users u ON sa.faculty_id = u.user_id
                 WHERE sa.id = ?
             ");
-            $stmt->execute([$assignmentId]);
             
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row ? new SubjectAssignment($row) : null;
+            $stmt->execute([$assignmentId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                return new SubjectAssignment($result);
+            }
+            
+            return null;
         } catch (\PDOException $e) {
             error_log("Error getting assignment by ID: " . $e->getMessage());
             throw $e;
@@ -111,12 +119,11 @@ class AssignmentDAO implements AssignmentDAOInterface
             $stmt = $this->db->prepare("
                 UPDATE subject_assignments 
                 SET subject_id = ?, faculty_id = ?, year_level = ?, section = ?, 
-                    academic_year = ?, semester = ?, status = ?, notes = ?, 
-                    updated_at = CURRENT_TIMESTAMP
+                    academic_year = ?, semester = ?, status = ?, notes = ?
                 WHERE id = ?
             ");
             
-            $result = $stmt->execute([
+            return $stmt->execute([
                 $assignment->getSubjectId(),
                 $assignment->getFacultyId(),
                 $assignment->getYearLevel(),
@@ -127,8 +134,6 @@ class AssignmentDAO implements AssignmentDAOInterface
                 $assignment->getNotes(),
                 $assignment->getId()
             ]);
-            
-            return $result;
         } catch (\PDOException $e) {
             error_log("Error updating assignment: " . $e->getMessage());
             throw $e;
@@ -164,6 +169,7 @@ class AssignmentDAO implements AssignmentDAOInterface
                 WHERE subject_id = ? AND year_level = ? AND section = ? 
                 AND academic_year = ? AND semester = ?
             ";
+            
             $params = [$subjectId, $yearLevel, $section, $academicYear, $semester];
             
             if ($excludeId) {
@@ -190,15 +196,26 @@ class AssignmentDAO implements AssignmentDAOInterface
             $sql = "
                 SELECT sa.*, s.subject_code, s.subject_name, u.full_name as faculty_name
                 FROM subject_assignments sa
-                JOIN subjects s ON sa.subject_id = s.subject_id
-                JOIN users u ON sa.faculty_id = u.user_id
+                LEFT JOIN subjects s ON sa.subject_id = s.subject_id
+                LEFT JOIN users u ON sa.faculty_id = u.user_id
                 WHERE 1=1
             ";
+            
             $params = [];
             
-            if (!empty($filters['subject_id'])) {
-                $sql .= " AND sa.subject_id = ?";
-                $params[] = $filters['subject_id'];
+            if (!empty($filters['academic_year'])) {
+                $sql .= " AND sa.academic_year = ?";
+                $params[] = $filters['academic_year'];
+            }
+            
+            if (!empty($filters['semester'])) {
+                $sql .= " AND sa.semester = ?";
+                $params[] = $filters['semester'];
+            }
+            
+            if (!empty($filters['status'])) {
+                $sql .= " AND sa.status = ?";
+                $params[] = $filters['status'];
             }
             
             if (!empty($filters['faculty_id'])) {
@@ -216,32 +233,15 @@ class AssignmentDAO implements AssignmentDAOInterface
                 $params[] = $filters['section'];
             }
             
-            if (!empty($filters['academic_year'])) {
-                $sql .= " AND sa.academic_year = ?";
-                $params[] = $filters['academic_year'];
-            }
-            
-            if (!empty($filters['semester'])) {
-                $sql .= " AND sa.semester = ?";
-                $params[] = $filters['semester'];
-            }
-            
-            if (!empty($filters['status'])) {
-                $sql .= " AND sa.status = ?";
-                $params[] = $filters['status'];
-            }
-            
-            $sql .= " ORDER BY sa.academic_year DESC, sa.year_level, sa.section, s.subject_name";
+            $sql .= " ORDER BY sa.created_at DESC";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            $assignments = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $assignments[] = new SubjectAssignment($row);
-            }
-            
-            return $assignments;
+            return array_map(function($row) {
+                return new SubjectAssignment($row);
+            }, $results);
         } catch (\PDOException $e) {
             error_log("Error getting assignments by filters: " . $e->getMessage());
             throw $e;
@@ -257,9 +257,10 @@ class AssignmentDAO implements AssignmentDAOInterface
             $sql = "
                 SELECT sa.*, s.subject_code, s.subject_name, s.units
                 FROM subject_assignments sa
-                JOIN subjects s ON sa.subject_id = s.subject_id
-                WHERE sa.faculty_id = ? AND sa.status = 'active'
+                LEFT JOIN subjects s ON sa.subject_id = s.subject_id
+                WHERE sa.faculty_id = ?
             ";
+            
             $params = [$facultyId];
             
             if ($academicYear) {
@@ -267,17 +268,15 @@ class AssignmentDAO implements AssignmentDAOInterface
                 $params[] = $academicYear;
             }
             
-            $sql .= " ORDER BY sa.academic_year DESC, sa.year_level, sa.section";
+            $sql .= " ORDER BY sa.academic_year DESC, sa.semester, sa.year_level, sa.section";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            $assignments = [];
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $assignments[] = new SubjectAssignment($row);
-            }
-            
-            return $assignments;
+            return array_map(function($row) {
+                return new SubjectAssignment($row);
+            }, $results);
         } catch (\PDOException $e) {
             error_log("Error getting faculty workload: " . $e->getMessage());
             throw $e;
@@ -297,12 +296,11 @@ class AssignmentDAO implements AssignmentDAOInterface
                     WHERE sa.subject_id = s.subject_id 
                     AND sa.academic_year = ? 
                     AND sa.semester = ?
-                    AND sa.status = 'active'
                 )
-                ORDER BY s.year_level, s.semester, s.subject_name
+                ORDER BY s.subject_code
             ");
-            $stmt->execute([$academicYear, $semester]);
             
+            $stmt->execute([$academicYear, $semester]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log("Error getting unassigned subjects: " . $e->getMessage());
@@ -319,13 +317,12 @@ class AssignmentDAO implements AssignmentDAOInterface
             $sql = "
                 SELECT 
                     COUNT(*) as total_assignments,
-                    COUNT(CASE WHEN status = 'active' THEN 1 END) as active_assignments,
-                    COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_assignments,
-                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_assignments,
-                    COUNT(DISTINCT faculty_id) as total_faculty,
-                    COUNT(DISTINCT subject_id) as total_subjects
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_assignments,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_assignments,
+                    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive_assignments
                 FROM subject_assignments
             ";
+            
             $params = [];
             
             if ($academicYear) {

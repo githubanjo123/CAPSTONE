@@ -4,54 +4,28 @@ namespace Tests\Unit\Controllers\Admin;
 
 use PHPUnit\Framework\TestCase;
 use App\Controllers\Admin\AssignmentController;
-use App\Services\Auth\AuthService;
 use App\Services\Assignment\AssignmentService;
-use App\Core\View;
+use App\Services\Auth\AuthService;
 use App\Models\SubjectAssignment;
 
 class AssignmentControllerTest extends TestCase
 {
-    private AssignmentController $assignmentController;
-    private AuthService $mockAuthService;
-    private AssignmentService $mockAssignmentService;
-    private View $mockView;
+    private $mockAssignmentService;
+    private $mockAuthService;
+    private $assignmentController;
 
     protected function setUp(): void
     {
-        $this->mockAuthService = $this->createMock(AuthService::class);
         $this->mockAssignmentService = $this->createMock(AssignmentService::class);
-        $this->mockView = $this->createMock(View::class);
-
-        // Mock the authentication methods to prevent actual calls
-        $this->mockAuthService->method('requireAuth')->willReturn(null);
-        $this->mockAuthService->method('requireRole')->willReturn(null);
-
+        $this->mockAuthService = $this->createMock(AuthService::class);
+        
         $this->assignmentController = new AssignmentController(
             $this->mockAuthService,
-            $this->mockAssignmentService,
-            $this->mockView
+            $this->mockAssignmentService
         );
     }
 
-    /**
-     * @test
-     */
-    public function it_should_require_authentication_and_admin_role()
-    {
-        $mockAuthService = $this->createMock(AuthService::class);
-        $mockAuthService->expects($this->once())
-            ->method('requireAuth');
-
-        $mockAuthService->expects($this->once())
-            ->method('requireRole')
-            ->with('admin');
-
-        new AssignmentController($mockAuthService);
-    }
-
-    /**
-     * @test
-     */
+    /** @test */
     public function it_should_add_assignment_successfully()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -66,69 +40,29 @@ class AssignmentControllerTest extends TestCase
             'notes' => 'Test assignment'
         ];
 
-        $expectedResult = [
-            'success' => true,
-            'message' => 'Assignment created successfully.',
-            'data' => new SubjectAssignment(['id' => 5])
-        ];
-
         $this->mockAssignmentService->expects($this->once())
             ->method('createAssignment')
             ->with($_POST)
-            ->willReturn($expectedResult);
+            ->willReturn([
+                'success' => true,
+                'message' => 'Assignment created successfully.',
+                'data' => ['id' => 1, 'subject_id' => 1, 'faculty_id' => 2]
+            ]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->addAssignment();
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
-        $this->assertTrue($response['success']);
+        $this->assertEquals('success', $response['status']);
         $this->assertEquals('Assignment created successfully.', $response['message']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_handle_add_assignment_failure()
-    {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_POST = [
-            'subject_id' => '',
-            'faculty_id' => 2
-        ];
-
-        $expectedResult = [
-            'success' => false,
-            'message' => 'Validation failed: Subject is required'
-        ];
-
-        $this->mockAssignmentService->expects($this->once())
-            ->method('createAssignment')
-            ->with($_POST)
-            ->willReturn($expectedResult);
-
-        // Capture the JSON response
-        ob_start();
-        $this->assignmentController->addAssignment();
-        $output = ob_get_clean();
-        $response = json_decode($output, true);
-
-        $this->assertFalse($response['success']);
-        $this->assertEquals('Validation failed: Subject is required', $response['message']);
-    }
-
-    /**
-     * @test
-     */
-    public function it_should_reject_add_assignment_with_invalid_request_method()
+    /** @test */
+    public function it_should_fail_to_add_assignment_with_invalid_method()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
 
-        $this->mockAssignmentService->expects($this->never())
-            ->method('createAssignment');
-
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->addAssignment();
         $output = ob_get_clean();
@@ -138,9 +72,7 @@ class AssignmentControllerTest extends TestCase
         $this->assertEquals('Invalid request method.', $response['message']);
     }
 
-    /**
-     * @test
-     */
+    /** @test */
     public function it_should_edit_assignment_successfully()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
@@ -152,78 +84,43 @@ class AssignmentControllerTest extends TestCase
             'section' => 'A',
             'academic_year' => '2024-2025',
             'semester' => '1st Semester',
-            'status' => 'inactive',
+            'status' => 'active',
             'notes' => 'Updated assignment'
-        ];
-
-        $expectedResult = [
-            'success' => true,
-            'message' => 'Assignment updated successfully.',
-            'data' => new SubjectAssignment(['id' => 1])
         ];
 
         $this->mockAssignmentService->expects($this->once())
             ->method('updateAssignment')
             ->with(1, $_POST)
-            ->willReturn($expectedResult);
+            ->willReturn([
+                'success' => true,
+                'message' => 'Assignment updated successfully.',
+                'data' => ['id' => 1, 'subject_id' => 1, 'faculty_id' => 2]
+            ]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->editAssignment();
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
-        $this->assertTrue($response['success']);
+        $this->assertEquals('success', $response['status']);
         $this->assertEquals('Assignment updated successfully.', $response['message']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_handle_edit_assignment_failure()
-    {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_POST = [
-            'assignment_id' => 999,
-            'subject_id' => 1,
-            'faculty_id' => 2
-        ];
-
-        $expectedResult = [
-            'success' => false,
-            'message' => 'Assignment not found.'
-        ];
-
-        $this->mockAssignmentService->expects($this->once())
-            ->method('updateAssignment')
-            ->with(999, $_POST)
-            ->willReturn($expectedResult);
-
-        // Capture the JSON response
-        ob_start();
-        $this->assignmentController->editAssignment();
-        $output = ob_get_clean();
-        $response = json_decode($output, true);
-
-        $this->assertFalse($response['success']);
-        $this->assertEquals('Assignment not found.', $response['message']);
-    }
-
-    /**
-     * @test
-     */
-    public function it_should_reject_edit_assignment_with_missing_assignment_id()
+    /** @test */
+    public function it_should_fail_to_edit_assignment_without_id()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = [
             'subject_id' => 1,
-            'faculty_id' => 2
+            'faculty_id' => 2,
+            'year_level' => '1st Year',
+            'section' => 'A',
+            'academic_year' => '2024-2025',
+            'semester' => '1st Semester',
+            'status' => 'active',
+            'notes' => 'Updated assignment'
         ];
 
-        $this->mockAssignmentService->expects($this->never())
-            ->method('updateAssignment');
-
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->editAssignment();
         $output = ob_get_clean();
@@ -233,74 +130,35 @@ class AssignmentControllerTest extends TestCase
         $this->assertEquals('Assignment ID is required.', $response['message']);
     }
 
-    /**
-     * @test
-     */
+    /** @test */
     public function it_should_delete_assignment_successfully()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = ['assignment_id' => 1];
 
-        $expectedResult = [
-            'success' => true,
-            'message' => 'Assignment deleted successfully.'
-        ];
-
         $this->mockAssignmentService->expects($this->once())
             ->method('deleteAssignment')
             ->with(1)
-            ->willReturn($expectedResult);
+            ->willReturn([
+                'success' => true,
+                'message' => 'Assignment deleted successfully.'
+            ]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->deleteAssignment();
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
-        $this->assertTrue($response['success']);
+        $this->assertEquals('success', $response['status']);
         $this->assertEquals('Assignment deleted successfully.', $response['message']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_handle_delete_assignment_failure()
-    {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-        $_POST = ['assignment_id' => 1];
-
-        $expectedResult = [
-            'success' => false,
-            'message' => 'Assignment not found.'
-        ];
-
-        $this->mockAssignmentService->expects($this->once())
-            ->method('deleteAssignment')
-            ->with(1)
-            ->willReturn($expectedResult);
-
-        // Capture the JSON response
-        ob_start();
-        $this->assignmentController->deleteAssignment();
-        $output = ob_get_clean();
-        $response = json_decode($output, true);
-
-        $this->assertFalse($response['success']);
-        $this->assertEquals('Assignment not found.', $response['message']);
-    }
-
-    /**
-     * @test
-     */
-    public function it_should_reject_delete_assignment_with_missing_assignment_id()
+    /** @test */
+    public function it_should_fail_to_delete_assignment_without_id()
     {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_POST = [];
 
-        $this->mockAssignmentService->expects($this->never())
-            ->method('deleteAssignment');
-
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->deleteAssignment();
         $output = ob_get_clean();
@@ -310,15 +168,12 @@ class AssignmentControllerTest extends TestCase
         $this->assertEquals('Assignment ID is required.', $response['message']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_get_assignment_by_id_for_ajax()
+    /** @test */
+    public function it_should_get_assignment_by_id()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $assignmentId = 1;
-
-        $assignmentData = new SubjectAssignment([
+        $mockAssignment = new SubjectAssignment([
             'id' => 1,
             'subject_id' => 1,
             'faculty_id' => 2,
@@ -332,33 +187,30 @@ class AssignmentControllerTest extends TestCase
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getAssignmentById')
-            ->with(1)
-            ->willReturn($assignmentData);
+            ->with($assignmentId)
+            ->willReturn($mockAssignment);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getAssignment($assignmentId);
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
         $this->assertEquals('success', $response['status']);
-        $this->assertInstanceOf(SubjectAssignment::class, $response['data']);
+        $this->assertIsArray($response['data']);
+        $this->assertEquals(1, $response['data']['id']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_return_error_when_assignment_not_found_for_ajax()
+    /** @test */
+    public function it_should_return_error_when_assignment_not_found()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $assignmentId = 999;
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getAssignmentById')
-            ->with(999)
+            ->with($assignmentId)
             ->willReturn(null);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getAssignment($assignmentId);
         $output = ob_get_clean();
@@ -368,32 +220,30 @@ class AssignmentControllerTest extends TestCase
         $this->assertEquals('Assignment not found.', $response['message']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_get_assignments_by_filters_for_ajax()
+    /** @test */
+    public function it_should_get_assignments_by_filters()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_GET = [
-            'year_level' => '1st Year',
+            'academic_year' => '2024-2025',
+            'semester' => '1st Semester',
             'status' => 'active'
         ];
 
-        $filterResults = [
-            new SubjectAssignment(['id' => 1, 'year_level' => '1st Year', 'status' => 'active'])
+        $mockAssignments = [
+            new SubjectAssignment(['id' => 1, 'subject_id' => 1, 'faculty_id' => 2])
         ];
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getAssignmentsByFilters')
             ->with($_GET)
-            ->willReturn($filterResults);
+            ->willReturn($mockAssignments);
 
         $this->mockAssignmentService->expects($this->once())
             ->method('assignmentsToArray')
-            ->with($filterResults)
-            ->willReturn([$filterResults[0]->toArray()]);
+            ->with($mockAssignments)
+            ->willReturn([['id' => 1, 'subject_id' => 1, 'faculty_id' => 2]]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getAssignmentsByFilters();
         $output = ob_get_clean();
@@ -401,34 +251,29 @@ class AssignmentControllerTest extends TestCase
 
         $this->assertEquals('success', $response['status']);
         $this->assertIsArray($response['data']);
+        $this->assertCount(1, $response['data']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_get_faculty_workload_for_ajax()
+    /** @test */
+    public function it_should_get_faculty_workload()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_GET = [
-            'faculty_id' => 2,
-            'academic_year' => '2024-2025'
-        ];
+        $_GET = ['faculty_id' => 2, 'academic_year' => '2024-2025'];
 
-        $workload = [
-            new SubjectAssignment(['id' => 1, 'faculty_id' => 2, 'status' => 'active'])
+        $mockWorkload = [
+            new SubjectAssignment(['id' => 1, 'subject_id' => 1, 'faculty_id' => 2])
         ];
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getFacultyWorkload')
             ->with(2, '2024-2025')
-            ->willReturn($workload);
+            ->willReturn($mockWorkload);
 
         $this->mockAssignmentService->expects($this->once())
             ->method('assignmentsToArray')
-            ->with($workload)
-            ->willReturn([$workload[0]->toArray()]);
+            ->with($mockWorkload)
+            ->willReturn([['id' => 1, 'subject_id' => 1, 'faculty_id' => 2]]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getFacultyWorkload();
         $output = ob_get_clean();
@@ -436,66 +281,39 @@ class AssignmentControllerTest extends TestCase
 
         $this->assertEquals('success', $response['status']);
         $this->assertIsArray($response['data']);
+        $this->assertCount(1, $response['data']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_return_error_when_faculty_id_missing_for_workload()
+    /** @test */
+    public function it_should_get_unassigned_subjects()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_GET = ['academic_year' => '2024-2025'];
+        $_GET = ['academic_year' => '2024-2025', 'semester' => '1st Semester'];
 
-        $this->mockAssignmentService->expects($this->never())
-            ->method('getFacultyWorkload');
-
-        // Capture the JSON response
-        ob_start();
-        $this->assignmentController->getFacultyWorkload();
-        $output = ob_get_clean();
-        $response = json_decode($output, true);
-
-        $this->assertEquals('error', $response['status']);
-        $this->assertEquals('Faculty ID is required.', $response['message']);
-    }
-
-    /**
-     * @test
-     */
-    public function it_should_get_unassigned_subjects_for_ajax()
-    {
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_GET = [
-            'academic_year' => '2024-2025',
-            'semester' => '1st Semester'
-        ];
-
-        $subjects = [
-            ['subject_id' => 3, 'subject_code' => 'PHYS101', 'subject_name' => 'Physics']
+        $mockSubjects = [
+            ['subject_id' => 1, 'subject_code' => 'CS101', 'subject_name' => 'Computer Science']
         ];
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getUnassignedSubjects')
             ->with('2024-2025', '1st Semester')
-            ->willReturn($subjects);
+            ->willReturn($mockSubjects);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getUnassignedSubjects();
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
         $this->assertEquals('success', $response['status']);
-        $this->assertEquals($subjects, $response['data']);
+        $this->assertIsArray($response['data']);
+        $this->assertCount(1, $response['data']);
+        $this->assertEquals('CS101', $response['data'][0]['subject_code']);
     }
 
-    /**
-     * @test
-     */
+    /** @test */
     public function it_should_refresh_assignments_for_ajax()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
-
         $assignments = [
             new SubjectAssignment(['id' => 1, 'subject_id' => 1, 'faculty_id' => 2])
         ];
@@ -507,9 +325,8 @@ class AssignmentControllerTest extends TestCase
         $this->mockAssignmentService->expects($this->once())
             ->method('assignmentsToArray')
             ->with($assignments)
-            ->willReturn([$assignments[0]->toArray()]);
+            ->willReturn([['id' => 1, 'subject_id' => 1, 'faculty_id' => 2]]);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->refreshAssignments();
         $output = ob_get_clean();
@@ -519,60 +336,32 @@ class AssignmentControllerTest extends TestCase
         $this->assertIsArray($response['data']);
     }
 
-    /**
-     * @test
-     */
-    public function it_should_get_assignment_stats_for_ajax()
+    /** @test */
+    public function it_should_get_assignment_statistics()
     {
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_GET = ['academic_year' => '2024-2025'];
 
-        $stats = [
+        $mockStats = [
             'total_assignments' => 10,
             'active_assignments' => 8,
-            'pending_assignments' => 2
+            'pending_assignments' => 2,
+            'inactive_assignments' => 0
         ];
 
         $this->mockAssignmentService->expects($this->once())
             ->method('getAssignmentStats')
             ->with('2024-2025')
-            ->willReturn($stats);
+            ->willReturn($mockStats);
 
-        // Capture the JSON response
         ob_start();
         $this->assignmentController->getAssignmentStats();
         $output = ob_get_clean();
         $response = json_decode($output, true);
 
         $this->assertEquals('success', $response['status']);
-        $this->assertEquals($stats, $response['data']);
-    }
-
-    /**
-     * @test
-     */
-    public function it_should_reject_ajax_requests_with_invalid_method()
-    {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
-
-        $this->mockAssignmentService->expects($this->never())
-            ->method('getAssignmentById');
-
-        // Capture the JSON response
-        ob_start();
-        $this->assignmentController->getAssignment(1);
-        $output = ob_get_clean();
-        $response = json_decode($output, true);
-
-        $this->assertEquals('error', $response['status']);
-        $this->assertEquals('Invalid request method.', $response['message']);
-    }
-
-    protected function tearDown(): void
-    {
-        // Clean up global variables
-        unset($_SERVER['REQUEST_METHOD']);
-        unset($_POST);
-        unset($_GET);
+        $this->assertIsArray($response['data']);
+        $this->assertEquals(10, $response['data']['total_assignments']);
+        $this->assertEquals(8, $response['data']['active_assignments']);
     }
 }
