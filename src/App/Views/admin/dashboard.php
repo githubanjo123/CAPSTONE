@@ -146,25 +146,7 @@
 
             <!-- Tab 3: Subject Assignments -->
             <div id="assignments" class="tab-content hidden">
-                <div class="text-center py-12">
-                    <i class="fas fa-link text-6xl text-grey-400 mb-4"></i>
-                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Subject Assignments</h4>
-                    <p class="text-grey-500">Enhanced assignment system is ready!</p>
-                    <div class="mt-4">
-                        <p class="text-sm text-grey-600 mb-2">Available variables:</p>
-                        <ul class="text-xs text-grey-500 text-left max-w-md mx-auto">
-                            <li>• Academic Years: <?= isset($academicYears) ? count($academicYears) : 'Not set' ?></li>
-                            <li>• Assignment Sections: <?= isset($assignmentSections) ? count($assignmentSections) : 'Not set' ?></li>
-                            <li>• Assignment Semesters: <?= isset($assignmentSemesters) ? count($assignmentSemesters) : 'Not set' ?></li>
-                            <li>• Assignment Statuses: <?= isset($assignmentStatuses) ? count($assignmentStatuses) : 'Not set' ?></li>
-                            <li>• Subjects: <?= isset($subjects) ? count($subjects) : 'Not set' ?></li>
-                            <li>• Faculty: <?= isset($faculty) ? count($faculty) : 'Not set' ?></li>
-                        </ul>
-                    </div>
-                    <button onclick="alert('Assignment system is ready! Check console for debug info.')" class="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg">
-                        Test Assignment System
-                    </button>
-                </div>
+                <?php include 'manage-assignments.php'; ?>
             </div>
 
             <!-- Tab 4: Reports -->
@@ -245,6 +227,19 @@
                 tabContent.classList.remove('hidden');
                 tabContent.classList.add('active');
                 console.log('Tab content shown:', tabName); // Debug log
+                
+                
+                // Initialize tab-specific functionality
+                if (tabName === 'assignments' && typeof initializeAssignments === 'function') {
+                    console.log('Initializing assignments...');
+                    initializeAssignments();
+                } else if (tabName === 'subjects' && typeof initializeSubjects === 'function') {
+                    console.log('Initializing subjects...');
+                    initializeSubjects();
+                } else if (tabName === 'users' && typeof initializeUsers === 'function') {
+                    console.log('Initializing users...');
+                    initializeUsers();
+                }
             } else {
                 console.error('Tab content not found:', tabName); // Debug log
             }
@@ -262,6 +257,7 @@
             // Save current tab to localStorage
             localStorage.setItem('adminCurrentTab', tabName);
         }
+        
 
         // Year-Section Tab Switching
         document.addEventListener('DOMContentLoaded', function() {
@@ -294,6 +290,10 @@
                 yearSectionTabs[0].click();
             }
             
+            // Initialize the default tab (users)
+            console.log('Initializing default tab...');
+            showTab('users');
+            
             // Restore saved tab if available
             const savedTab = localStorage.getItem('adminCurrentTab');
             if (savedTab && document.getElementById(savedTab + '-tab')) {
@@ -308,6 +308,18 @@
                 const tabButton = document.getElementById(tabName + '-tab');
                 const tabContent = document.getElementById(tabName);
                 console.log(`${tabName}: Button=${!!tabButton}, Content=${!!tabContent}`); // Debug log
+            });
+            
+            // Add click event listeners to tab buttons as backup
+            tabElements.forEach(tabName => {
+                const tabButton = document.getElementById(tabName + '-tab');
+                if (tabButton) {
+                    tabButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log(`Tab button clicked: ${tabName}`);
+                        showTab(tabName);
+                    });
+                }
             });
         });
     </script>

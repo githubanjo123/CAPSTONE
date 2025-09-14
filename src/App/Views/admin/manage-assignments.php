@@ -477,15 +477,15 @@
 
 <script>
 // Global variables
-let currentAssignments = <?= json_encode($assignments) ?>;
+let currentAssignments = <?= json_encode($assignments ?? []) ?>;
 let currentDeleteAssignmentId = null;
 
-// Initialize assignments display
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize assignments display - called from dashboard
+function initializeAssignments() {
     loadAssignments();
     loadAssignmentStats();
     setupAssignmentEventListeners();
-});
+}
 
 // Setup event listeners
 function setupAssignmentEventListeners() {
@@ -542,34 +542,34 @@ function loadAssignments() {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div>
                         <div class="text-sm font-medium text-grey-900">
-                            ${escapeHtml(assignment.subject_code)} - ${escapeHtml(assignment.subject_name)}
+                            ${escapeHtml(assignment.subject_code || '')} - ${escapeHtml(assignment.subject_name || '')}
                         </div>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.faculty_name)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.faculty_name || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.year_level)} - ${escapeHtml(assignment.section)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.year_level || '')} - ${escapeHtml(assignment.section || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.academic_year)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.academic_year || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.semester)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.semester || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
                         <i class="${statusIcon} mr-1"></i>
-                        ${escapeHtml(assignment.status)}
+                        ${escapeHtml(assignment.status || '')}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">
-                        <button class="text-indigo-600 hover:text-indigo-900" onclick="editAssignment(${assignment.id})">
+                        <button class="text-indigo-600 hover:text-indigo-900" onclick="editAssignment(${assignment.id || 0})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="text-red-600 hover:text-red-900" onclick="deleteAssignment(${assignment.id})">
+                        <button class="text-red-600 hover:text-red-900" onclick="deleteAssignment(${assignment.id || 0})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -583,6 +583,7 @@ function loadAssignments() {
 
 // Get status class for styling
 function getStatusClass(status) {
+    if (!status) return 'bg-grey-100 text-grey-800';
     switch (status) {
         case 'active': return 'bg-green-100 text-green-800';
         case 'inactive': return 'bg-red-100 text-red-800';
@@ -593,6 +594,7 @@ function getStatusClass(status) {
 
 // Get status icon
 function getStatusIcon(status) {
+    if (!status) return 'fas fa-question-circle';
     switch (status) {
         case 'active': return 'fas fa-check-circle';
         case 'inactive': return 'fas fa-times-circle';
@@ -610,9 +612,9 @@ function filterAssignments() {
     
     let filteredAssignments = currentAssignments.filter(assignment => {
         const matchesSearch = !searchTerm || 
-            assignment.subject_code.toLowerCase().includes(searchTerm) ||
-            assignment.subject_name.toLowerCase().includes(searchTerm) ||
-            assignment.faculty_name.toLowerCase().includes(searchTerm) ||
+            (assignment.subject_code && assignment.subject_code.toLowerCase().includes(searchTerm)) ||
+            (assignment.subject_name && assignment.subject_name.toLowerCase().includes(searchTerm)) ||
+            (assignment.faculty_name && assignment.faculty_name.toLowerCase().includes(searchTerm)) ||
             (assignment.notes && assignment.notes.toLowerCase().includes(searchTerm));
         
         const matchesAcademicYear = !academicYear || assignment.academic_year === academicYear;
@@ -644,34 +646,34 @@ function filterAssignments() {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div>
                         <div class="text-sm font-medium text-grey-900">
-                            ${escapeHtml(assignment.subject_code)} - ${escapeHtml(assignment.subject_name)}
+                            ${escapeHtml(assignment.subject_code || '')} - ${escapeHtml(assignment.subject_name || '')}
                         </div>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.faculty_name)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.faculty_name || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.year_level)} - ${escapeHtml(assignment.section)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.year_level || '')} - ${escapeHtml(assignment.section || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.academic_year)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.academic_year || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-grey-900">${escapeHtml(assignment.semester)}</div>
+                    <div class="text-sm text-grey-900">${escapeHtml(assignment.semester || '')}</div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
                         <i class="${statusIcon} mr-1"></i>
-                        ${escapeHtml(assignment.status)}
+                        ${escapeHtml(assignment.status || '')}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">
-                        <button class="text-indigo-600 hover:text-indigo-900" onclick="editAssignment(${assignment.id})">
+                        <button class="text-indigo-600 hover:text-indigo-900" onclick="editAssignment(${assignment.id || 0})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="text-red-600 hover:text-red-900" onclick="deleteAssignment(${assignment.id})">
+                        <button class="text-red-600 hover:text-red-900" onclick="deleteAssignment(${assignment.id || 0})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -695,20 +697,32 @@ function clearAssignmentFilters() {
 // Load assignment statistics
 function loadAssignmentStats() {
     fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/assignments/stats')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
-            const stats = data.data;
+            const stats = data.data || {};
             document.getElementById('totalAssignments').textContent = stats.total_assignments || 0;
             document.getElementById('activeAssignments').textContent = stats.active_assignments || 0;
             document.getElementById('pendingAssignments').textContent = stats.pending_assignments || 0;
             
             // Calculate unassigned subjects (this would need to be implemented)
             document.getElementById('unassignedSubjects').textContent = '0';
+        } else {
+            console.error('Error loading assignment stats:', data.message || 'Unknown error');
         }
     })
     .catch(error => {
         console.error('Error loading assignment stats:', error);
+        // Set default values on error
+        document.getElementById('totalAssignments').textContent = '0';
+        document.getElementById('activeAssignments').textContent = '0';
+        document.getElementById('pendingAssignments').textContent = '0';
+        document.getElementById('unassignedSubjects').textContent = '0';
     });
 }
 
@@ -851,18 +865,27 @@ function confirmDeleteAssignment() {
 function refreshAssignmentsData() {
     // Fetch fresh assignments data from the server
     fetch('<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/assignments/refresh')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
-            currentAssignments = data.data;
+            currentAssignments = data.data || [];
             loadAssignments();
             loadAssignmentStats();
         } else {
-            console.error('Error refreshing assignments:', data.message);
+            console.error('Error refreshing assignments:', data.message || 'Unknown error');
+            currentAssignments = [];
+            loadAssignments();
         }
     })
     .catch(error => {
         console.error('Error refreshing assignments:', error);
+        currentAssignments = [];
+        loadAssignments();
     });
 }
 

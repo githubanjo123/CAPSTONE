@@ -2,12 +2,13 @@
 
 namespace App\Services\Assignment;
 
+use App\Models\SubjectAssignment;
 use App\DAO\AssignmentDAO;
 use App\DAO\SubjectDAO;
 use App\DAO\Auth\UserDAO;
-use App\Models\SubjectAssignment;
+use App\Interfaces\AssignmentServiceInterface;
 
-class AssignmentService
+class AssignmentService implements AssignmentServiceInterface
 {
     private $assignmentDAO;
     private $subjectDAO;
@@ -16,17 +17,17 @@ class AssignmentService
     public function __construct(
         AssignmentDAO $assignmentDAO = null,
         SubjectDAO $subjectDAO = null,
-        UserDAO $userDAO = null
+        \App\DAO\Auth\UserDAO $userDAO = null
     ) {
         $this->assignmentDAO = $assignmentDAO ?? new AssignmentDAO();
         $this->subjectDAO = $subjectDAO ?? new SubjectDAO();
-        $this->userDAO = $userDAO ?? new UserDAO();
+        $this->userDAO = $userDAO ?? new \App\DAO\Auth\UserDAO();
     }
 
     /**
      * Get all assignments
      */
-    public function getAllAssignments()
+    public function getAllAssignments(): array
     {
         return $this->assignmentDAO->getAll();
     }
@@ -34,7 +35,7 @@ class AssignmentService
     /**
      * Get assignment by ID
      */
-    public function getAssignmentById($assignmentId)
+    public function getAssignmentById($assignmentId): ?SubjectAssignment
     {
         return $this->assignmentDAO->getById($assignmentId);
     }
@@ -42,7 +43,7 @@ class AssignmentService
     /**
      * Create a new assignment
      */
-    public function createAssignment($data)
+    public function createAssignment($data): array
     {
         try {
             // Create assignment model
@@ -71,41 +72,22 @@ class AssignmentService
                 ];
             }
 
-            // Validate subject exists
-            $subject = $this->subjectDAO->getById($assignment->getSubjectId());
-            if (!$subject) {
-                return [
-                    'success' => false,
-                    'message' => 'Subject not found.'
-                ];
-            }
-
-            // Validate faculty exists and is faculty role
-            $faculty = $this->userDAO->findById($assignment->getFacultyId());
-            if (!$faculty || $faculty->getRole() !== 'faculty') {
-                return [
-                    'success' => false,
-                    'message' => 'Faculty not found or invalid faculty member.'
-                ];
-            }
-
-            // Create assignment
+            // Create the assignment
             $createdAssignment = $this->assignmentDAO->create($assignment);
+            
             if ($createdAssignment) {
                 return [
                     'success' => true,
                     'message' => 'Assignment created successfully.',
-                    'data' => $createdAssignment
+                    'data' => $createdAssignment->toArray()
                 ];
             }
-
+            
             return [
                 'success' => false,
                 'message' => 'Failed to create assignment.'
             ];
-
         } catch (\Exception $e) {
-            error_log("Error creating assignment: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'An error occurred while creating the assignment.'
@@ -116,7 +98,7 @@ class AssignmentService
     /**
      * Update an existing assignment
      */
-    public function updateAssignment($assignmentId, $data)
+    public function updateAssignment($assignmentId, $data): array
     {
         try {
             // Get existing assignment
@@ -128,10 +110,10 @@ class AssignmentService
                 ];
             }
 
-            // Update assignment data
-            $assignment = new SubjectAssignment(array_merge($existingAssignment->toArray(), $data));
+            // Create updated assignment model
+            $assignment = new SubjectAssignment($data);
             $assignment->setId($assignmentId);
-
+            
             // Validate assignment data
             $errors = $assignment->validate();
             if (!empty($errors)) {
@@ -141,7 +123,7 @@ class AssignmentService
                 ];
             }
 
-            // Check if assignment already exists (excluding current assignment)
+            // Check if assignment already exists (excluding current one)
             if ($this->assignmentDAO->assignmentExists(
                 $assignment->getSubjectId(),
                 $assignment->getYearLevel(),
@@ -156,41 +138,22 @@ class AssignmentService
                 ];
             }
 
-            // Validate subject exists
-            $subject = $this->subjectDAO->getById($assignment->getSubjectId());
-            if (!$subject) {
-                return [
-                    'success' => false,
-                    'message' => 'Subject not found.'
-                ];
-            }
-
-            // Validate faculty exists and is faculty role
-            $faculty = $this->userDAO->findById($assignment->getFacultyId());
-            if (!$faculty || $faculty->getRole() !== 'faculty') {
-                return [
-                    'success' => false,
-                    'message' => 'Faculty not found or invalid faculty member.'
-                ];
-            }
-
-            // Update assignment
-            $result = $this->assignmentDAO->update($assignment);
-            if ($result) {
+            // Update the assignment
+            $success = $this->assignmentDAO->update($assignment);
+            
+            if ($success) {
                 return [
                     'success' => true,
                     'message' => 'Assignment updated successfully.',
-                    'data' => $assignment
+                    'data' => $assignment->toArray()
                 ];
             }
-
+            
             return [
                 'success' => false,
                 'message' => 'Failed to update assignment.'
             ];
-
         } catch (\Exception $e) {
-            error_log("Error updating assignment: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'An error occurred while updating the assignment.'
@@ -201,7 +164,7 @@ class AssignmentService
     /**
      * Delete an assignment
      */
-    public function deleteAssignment($assignmentId)
+    public function deleteAssignment($assignmentId): array
     {
         try {
             // Check if assignment exists
@@ -213,22 +176,21 @@ class AssignmentService
                 ];
             }
 
-            // Delete assignment
-            $result = $this->assignmentDAO->delete($assignmentId);
-            if ($result) {
+            // Delete the assignment
+            $success = $this->assignmentDAO->delete($assignmentId);
+            
+            if ($success) {
                 return [
                     'success' => true,
                     'message' => 'Assignment deleted successfully.'
                 ];
             }
-
+            
             return [
                 'success' => false,
                 'message' => 'Failed to delete assignment.'
             ];
-
         } catch (\Exception $e) {
-            error_log("Error deleting assignment: " . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'An error occurred while deleting the assignment.'
@@ -239,7 +201,7 @@ class AssignmentService
     /**
      * Get assignments by filters
      */
-    public function getAssignmentsByFilters($filters = [])
+    public function getAssignmentsByFilters($filters = []): array
     {
         return $this->assignmentDAO->getByFilters($filters);
     }
@@ -247,7 +209,7 @@ class AssignmentService
     /**
      * Get faculty workload
      */
-    public function getFacultyWorkload($facultyId, $academicYear = null)
+    public function getFacultyWorkload($facultyId, $academicYear = null): array
     {
         return $this->assignmentDAO->getFacultyWorkload($facultyId, $academicYear);
     }
@@ -255,7 +217,7 @@ class AssignmentService
     /**
      * Get unassigned subjects
      */
-    public function getUnassignedSubjects($academicYear, $semester)
+    public function getUnassignedSubjects($academicYear, $semester): array
     {
         return $this->assignmentDAO->getUnassignedSubjects($academicYear, $semester);
     }
@@ -263,7 +225,7 @@ class AssignmentService
     /**
      * Get assignment statistics
      */
-    public function getAssignmentStats($academicYear = null)
+    public function getAssignmentStats($academicYear = null): array
     {
         return $this->assignmentDAO->getAssignmentStats($academicYear);
     }
@@ -271,7 +233,7 @@ class AssignmentService
     /**
      * Get all faculty members
      */
-    public function getAllFaculty()
+    public function getAllFaculty(): array
     {
         return $this->userDAO->getUsersByRole('faculty');
     }
@@ -279,7 +241,7 @@ class AssignmentService
     /**
      * Get all subjects
      */
-    public function getAllSubjects()
+    public function getAllSubjects(): array
     {
         return $this->subjectDAO->getAll();
     }
@@ -287,7 +249,7 @@ class AssignmentService
     /**
      * Get year levels
      */
-    public function getYearLevels()
+    public function getYearLevels(): array
     {
         return [
             '1st Year' => '1st Year',
@@ -300,7 +262,7 @@ class AssignmentService
     /**
      * Get sections
      */
-    public function getSections()
+    public function getSections(): array
     {
         return [
             'A' => 'Section A',
@@ -315,7 +277,7 @@ class AssignmentService
     /**
      * Get academic years
      */
-    public function getAcademicYears()
+    public function getAcademicYears(): array
     {
         $currentYear = date('Y');
         $years = [];
@@ -323,7 +285,8 @@ class AssignmentService
         // Generate 5 years (current + 4 previous)
         for ($i = 0; $i < 5; $i++) {
             $year = $currentYear - $i;
-            $academicYear = $year . '-' . ($year + 1);
+            $nextYear = $year + 1;
+            $academicYear = "{$year}-{$nextYear}";
             $years[$academicYear] = $academicYear;
         }
         
@@ -333,7 +296,7 @@ class AssignmentService
     /**
      * Get semesters
      */
-    public function getSemesters()
+    public function getSemesters(): array
     {
         return [
             '1st Semester' => '1st Semester',
@@ -345,7 +308,7 @@ class AssignmentService
     /**
      * Get assignment statuses
      */
-    public function getAssignmentStatuses()
+    public function getAssignmentStatuses(): array
     {
         return [
             'active' => 'Active',
@@ -357,7 +320,7 @@ class AssignmentService
     /**
      * Convert assignments to array for view
      */
-    public function assignmentsToArray($assignments)
+    public function assignmentsToArray($assignments): array
     {
         return array_map(function($assignment) {
             return $assignment->toArray();

@@ -15,6 +15,11 @@ class SubjectAssignment
     private $notes;
     private $createdAt;
     private $updatedAt;
+    
+    // Additional fields from joins
+    private $subjectCode;
+    private $subjectName;
+    private $facultyName;
 
     public function __construct(array $data = [])
     {
@@ -29,6 +34,11 @@ class SubjectAssignment
         $this->notes = $data['notes'] ?? '';
         $this->createdAt = $data['created_at'] ?? null;
         $this->updatedAt = $data['updated_at'] ?? null;
+        
+        // Additional fields from joins
+        $this->subjectCode = $data['subject_code'] ?? '';
+        $this->subjectName = $data['subject_name'] ?? '';
+        $this->facultyName = $data['faculty_name'] ?? '';
     }
 
     // Getters
@@ -43,6 +53,9 @@ class SubjectAssignment
     public function getNotes() { return $this->notes; }
     public function getCreatedAt() { return $this->createdAt; }
     public function getUpdatedAt() { return $this->updatedAt; }
+    public function getSubjectCode() { return $this->subjectCode; }
+    public function getSubjectName() { return $this->subjectName; }
+    public function getFacultyName() { return $this->facultyName; }
 
     // Setters
     public function setId($id) { $this->id = $id; }
@@ -54,9 +67,14 @@ class SubjectAssignment
     public function setSemester($semester) { $this->semester = $semester; }
     public function setStatus($status) { $this->status = $status; }
     public function setNotes($notes) { $this->notes = $notes; }
+    public function setCreatedAt($createdAt) { $this->createdAt = $createdAt; }
+    public function setUpdatedAt($updatedAt) { $this->updatedAt = $updatedAt; }
+    public function setSubjectCode($subjectCode) { $this->subjectCode = $subjectCode; }
+    public function setSubjectName($subjectName) { $this->subjectName = $subjectName; }
+    public function setFacultyName($facultyName) { $this->facultyName = $facultyName; }
 
     /**
-     * Convert to array
+     * Convert assignment to array
      */
     public function toArray(): array
     {
@@ -71,7 +89,10 @@ class SubjectAssignment
             'status' => $this->status,
             'notes' => $this->notes,
             'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt
+            'updated_at' => $this->updatedAt,
+            'subject_code' => $this->subjectCode,
+            'subject_name' => $this->subjectName,
+            'faculty_name' => $this->facultyName
         ];
     }
 
@@ -82,50 +103,44 @@ class SubjectAssignment
     {
         $errors = [];
 
+        // Required fields
         if (empty($this->subjectId)) {
-            $errors[] = 'Subject is required';
+            $errors[] = 'Subject ID is required';
         }
-
         if (empty($this->facultyId)) {
-            $errors[] = 'Faculty is required';
+            $errors[] = 'Faculty ID is required';
         }
-
         if (empty($this->yearLevel)) {
             $errors[] = 'Year level is required';
         }
-
         if (empty($this->section)) {
             $errors[] = 'Section is required';
         }
-
         if (empty($this->academicYear)) {
             $errors[] = 'Academic year is required';
         }
-
         if (empty($this->semester)) {
             $errors[] = 'Semester is required';
         }
 
-        if (!in_array($this->status, ['active', 'inactive', 'pending'])) {
-            $errors[] = 'Status must be active, inactive, or pending';
+        // Valid year levels
+        $validYearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+        if (!empty($this->yearLevel) && !in_array($this->yearLevel, $validYearLevels)) {
+            $errors[] = 'Invalid year level';
+        }
+
+        // Valid semesters
+        $validSemesters = ['1st Semester', '2nd Semester', 'Summer'];
+        if (!empty($this->semester) && !in_array($this->semester, $validSemesters)) {
+            $errors[] = 'Invalid semester';
+        }
+
+        // Valid status
+        $validStatuses = ['active', 'inactive', 'pending'];
+        if (!empty($this->status) && !in_array($this->status, $validStatuses)) {
+            $errors[] = 'Invalid status';
         }
 
         return $errors;
-    }
-
-    /**
-     * Check if assignment is active
-     */
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
-    }
-
-    /**
-     * Get assignment key for uniqueness check
-     */
-    public function getAssignmentKey(): string
-    {
-        return $this->subjectId . '_' . $this->yearLevel . '_' . $this->section . '_' . $this->academicYear . '_' . $this->semester;
     }
 }

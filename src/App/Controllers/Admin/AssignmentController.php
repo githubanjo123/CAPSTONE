@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Services\Auth\AuthService;
 use App\Services\Assignment\AssignmentService;
 use App\Core\View;
+use App\Models\SubjectAssignment;
 
 class AssignmentController
 {
@@ -39,8 +40,11 @@ class AssignmentController
         $result = $this->assignmentService->createAssignment($_POST);
         
         // Return JSON response for AJAX requests
-        header('Content-Type: application/json');
-        echo json_encode($result);
+        if ($result['success']) {
+            $this->showSuccess($result['data'], $result['message']);
+        } else {
+            $this->showError($result['message']);
+        }
     }
 
     /**
@@ -62,8 +66,11 @@ class AssignmentController
         $result = $this->assignmentService->updateAssignment($assignmentId, $_POST);
         
         // Return JSON response for AJAX requests
-        header('Content-Type: application/json');
-        echo json_encode($result);
+        if ($result['success']) {
+            $this->showSuccess($result['data'], $result['message']);
+        } else {
+            $this->showError($result['message']);
+        }
     }
 
     /**
@@ -85,8 +92,11 @@ class AssignmentController
         $result = $this->assignmentService->deleteAssignment($assignmentId);
         
         // Return JSON response for AJAX requests
-        header('Content-Type: application/json');
-        echo json_encode($result);
+        if ($result['success']) {
+            $this->showSuccess(null, $result['message']);
+        } else {
+            $this->showError($result['message']);
+        }
     }
 
     /**
@@ -102,7 +112,7 @@ class AssignmentController
         $assignment = $this->assignmentService->getAssignmentById($assignmentId);
         
         if ($assignment) {
-            $this->showSuccess($assignment);
+            $this->showSuccess($assignment->toArray());
         } else {
             $this->showError('Assignment not found.');
         }
@@ -120,7 +130,9 @@ class AssignmentController
 
         $filters = $_GET;
         $assignments = $this->assignmentService->getAssignmentsByFilters($filters);
-        $this->showSuccess($assignments);
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        
+        $this->showSuccess($assignmentsArray);
     }
 
     /**
@@ -142,7 +154,9 @@ class AssignmentController
         }
 
         $workload = $this->assignmentService->getFacultyWorkload($facultyId, $academicYear);
-        $this->showSuccess($workload);
+        $workloadArray = $this->assignmentService->assignmentsToArray($workload);
+        
+        $this->showSuccess($workloadArray);
     }
 
     /**
@@ -155,15 +169,21 @@ class AssignmentController
             return;
         }
 
-        $academicYear = $_GET['academic_year'] ?? '2024-2025';
-        $semester = $_GET['semester'] ?? '1st Semester';
+        $academicYear = $_GET['academic_year'] ?? null;
+        $semester = $_GET['semester'] ?? null;
+
+        if (!$academicYear || !$semester) {
+            $this->showError('Academic year and semester are required.');
+            return;
+        }
 
         $subjects = $this->assignmentService->getUnassignedSubjects($academicYear, $semester);
+        
         $this->showSuccess($subjects);
     }
 
     /**
-     * Refresh assignments data for AJAX requests
+     * Refresh assignments for AJAX requests
      */
     public function refreshAssignments()
     {
@@ -173,7 +193,9 @@ class AssignmentController
         }
 
         $assignments = $this->assignmentService->getAllAssignments();
-        $this->showSuccess($assignments);
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        
+        $this->showSuccess($assignmentsArray);
     }
 
     /**
@@ -188,25 +210,27 @@ class AssignmentController
 
         $academicYear = $_GET['academic_year'] ?? null;
         $stats = $this->assignmentService->getAssignmentStats($academicYear);
+        
         $this->showSuccess($stats);
     }
 
     /**
-     * Show success message
+     * Show success response
      */
-    private function showSuccess($data)
+    private function showSuccess($data = null, $message = 'Success')
     {
         header('Content-Type: application/json');
         echo json_encode([
             'status' => 'success',
+            'message' => $message,
             'data' => $data
         ]);
     }
 
     /**
-     * Show error message
+     * Show error response
      */
-    private function showError($message)
+    private function showError($message = 'An error occurred')
     {
         header('Content-Type: application/json');
         echo json_encode([

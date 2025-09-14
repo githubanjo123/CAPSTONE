@@ -47,6 +47,18 @@ $router->get('/admin/dashboard', function() {
     (new AdminController())->dashboard();
 });
 
+$router->get('/admin/users', function() {
+    (new AdminController())->users();
+});
+
+$router->get('/admin/subjects', function() {
+    (new AdminController())->subjects();
+});
+
+$router->get('/admin/assignments', function() {
+    (new AdminController())->assignments();
+});
+
 $router->get('/admin/logout', function() {
     (new AdminController())->logout();
 });
