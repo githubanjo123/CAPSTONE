@@ -19,7 +19,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get all assignments
      */
-    public function getAll()
+    public function getAll(): array
     {
         try {
             $stmt = $this->db->prepare("
@@ -46,7 +46,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get assignment by ID
      */
-    public function getById($assignmentId)
+    public function getById($assignmentId): ?SubjectAssignment
     {
         try {
             $stmt = $this->db->prepare("
@@ -69,7 +69,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Create a new assignment
      */
-    public function create(SubjectAssignment $assignment)
+    public function create(SubjectAssignment $assignment): ?SubjectAssignment
     {
         try {
             $stmt = $this->db->prepare("
@@ -105,7 +105,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Update an existing assignment
      */
-    public function update(SubjectAssignment $assignment)
+    public function update(SubjectAssignment $assignment): bool
     {
         try {
             $stmt = $this->db->prepare("
@@ -138,7 +138,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Delete an assignment
      */
-    public function delete($assignmentId)
+    public function delete($assignmentId): bool
     {
         try {
             $stmt = $this->db->prepare("
@@ -156,7 +156,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Check if assignment exists (for uniqueness validation)
      */
-    public function assignmentExists($subjectId, $yearLevel, $section, $academicYear, $semester, $excludeId = null)
+    public function assignmentExists($subjectId, $yearLevel, $section, $academicYear, $semester, $excludeId = null): bool
     {
         try {
             $sql = "
@@ -184,7 +184,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get assignments by filters
      */
-    public function getByFilters($filters = [])
+    public function getByFilters($filters = []): array
     {
         try {
             $sql = "
@@ -251,7 +251,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get faculty workload
      */
-    public function getFacultyWorkload($facultyId, $academicYear = null)
+    public function getFacultyWorkload($facultyId, $academicYear = null): array
     {
         try {
             $sql = "
@@ -287,7 +287,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get unassigned subjects
      */
-    public function getUnassignedSubjects($academicYear, $semester)
+    public function getUnassignedSubjects($academicYear, $semester): array
     {
         try {
             $stmt = $this->db->prepare("
@@ -313,7 +313,7 @@ class AssignmentDAO implements AssignmentDAOInterface
     /**
      * Get assignment statistics
      */
-    public function getAssignmentStats($academicYear = null)
+    public function getAssignmentStats($academicYear = null): array
     {
         try {
             $sql = "

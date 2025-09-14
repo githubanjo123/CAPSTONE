@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Services\Auth\AuthService;
 use App\Services\Assignment\AssignmentService;
 use App\Core\View;
+use App\Models\SubjectAssignment;
 
 class AssignmentController
 {
@@ -102,7 +103,7 @@ class AssignmentController
         $assignment = $this->assignmentService->getAssignmentById($assignmentId);
         
         if ($assignment) {
-            $this->showSuccess($assignment);
+            $this->showSuccess($assignment->toArray());
         } else {
             $this->showError('Assignment not found.');
         }

@@ -27,7 +27,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get all assignments
      */
-    public function getAllAssignments()
+    public function getAllAssignments(): array
     {
         return $this->assignmentDAO->getAll();
     }
@@ -35,7 +35,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get assignment by ID
      */
-    public function getAssignmentById($assignmentId)
+    public function getAssignmentById($assignmentId): ?SubjectAssignment
     {
         return $this->assignmentDAO->getById($assignmentId);
     }
@@ -43,7 +43,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Create a new assignment
      */
-    public function createAssignment($data)
+    public function createAssignment($data): array
     {
         try {
             // Create assignment model
@@ -117,7 +117,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Update an existing assignment
      */
-    public function updateAssignment($assignmentId, $data)
+    public function updateAssignment($assignmentId, $data): array
     {
         try {
             // Get existing assignment
@@ -202,7 +202,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Delete an assignment
      */
-    public function deleteAssignment($assignmentId)
+    public function deleteAssignment($assignmentId): array
     {
         try {
             // Check if assignment exists
@@ -240,7 +240,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get assignments by filters
      */
-    public function getAssignmentsByFilters($filters = [])
+    public function getAssignmentsByFilters($filters = []): array
     {
         return $this->assignmentDAO->getByFilters($filters);
     }
@@ -248,7 +248,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get faculty workload
      */
-    public function getFacultyWorkload($facultyId, $academicYear = null)
+    public function getFacultyWorkload($facultyId, $academicYear = null): array
     {
         return $this->assignmentDAO->getFacultyWorkload($facultyId, $academicYear);
     }
@@ -256,7 +256,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get unassigned subjects
      */
-    public function getUnassignedSubjects($academicYear, $semester)
+    public function getUnassignedSubjects($academicYear, $semester): array
     {
         return $this->assignmentDAO->getUnassignedSubjects($academicYear, $semester);
     }
@@ -264,7 +264,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get assignment statistics
      */
-    public function getAssignmentStats($academicYear = null)
+    public function getAssignmentStats($academicYear = null): array
     {
         return $this->assignmentDAO->getAssignmentStats($academicYear);
     }
@@ -272,7 +272,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get all faculty members
      */
-    public function getAllFaculty()
+    public function getAllFaculty(): array
     {
         return $this->userDAO->getUsersByRole('faculty');
     }
@@ -280,7 +280,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get all subjects
      */
-    public function getAllSubjects()
+    public function getAllSubjects(): array
     {
         return $this->subjectDAO->getAll();
     }
@@ -288,7 +288,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get year levels
      */
-    public function getYearLevels()
+    public function getYearLevels(): array
     {
         return [
             '1st Year' => '1st Year',
@@ -301,7 +301,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get sections
      */
-    public function getSections()
+    public function getSections(): array
     {
         return [
             'A' => 'Section A',
@@ -316,7 +316,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get academic years
      */
-    public function getAcademicYears()
+    public function getAcademicYears(): array
     {
         $currentYear = date('Y');
         $years = [];
@@ -334,7 +334,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get semesters
      */
-    public function getSemesters()
+    public function getSemesters(): array
     {
         return [
             '1st Semester' => '1st Semester',
@@ -346,7 +346,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Get assignment statuses
      */
-    public function getAssignmentStatuses()
+    public function getAssignmentStatuses(): array
     {
         return [
             'active' => 'Active',
@@ -358,7 +358,7 @@ class AssignmentService implements AssignmentServiceInterface
     /**
      * Convert assignments to array for view
      */
-    public function assignmentsToArray($assignments)
+    public function assignmentsToArray($assignments): array
     {
         return array_map(function($assignment) {
             return $assignment->toArray();
