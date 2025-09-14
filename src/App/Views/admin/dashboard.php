@@ -227,6 +227,18 @@
                 tabContent.classList.remove('hidden');
                 tabContent.classList.add('active');
                 console.log('Tab content shown:', tabName); // Debug log
+                
+                // Initialize tab-specific functionality
+                if (tabName === 'assignments' && typeof initializeAssignments === 'function') {
+                    console.log('Initializing assignments...');
+                    initializeAssignments();
+                } else if (tabName === 'subjects' && typeof initializeSubjects === 'function') {
+                    console.log('Initializing subjects...');
+                    initializeSubjects();
+                } else if (tabName === 'users' && typeof initializeUsers === 'function') {
+                    console.log('Initializing users...');
+                    initializeUsers();
+                }
             } else {
                 console.error('Tab content not found:', tabName); // Debug log
             }
@@ -276,6 +288,10 @@
                 yearSectionTabs[0].click();
             }
             
+            // Initialize the default tab (users)
+            console.log('Initializing default tab...');
+            showTab('users');
+            
             // Restore saved tab if available
             const savedTab = localStorage.getItem('adminCurrentTab');
             if (savedTab && document.getElementById(savedTab + '-tab')) {
@@ -290,6 +306,18 @@
                 const tabButton = document.getElementById(tabName + '-tab');
                 const tabContent = document.getElementById(tabName);
                 console.log(`${tabName}: Button=${!!tabButton}, Content=${!!tabContent}`); // Debug log
+            });
+            
+            // Add click event listeners to tab buttons as backup
+            tabElements.forEach(tabName => {
+                const tabButton = document.getElementById(tabName + '-tab');
+                if (tabButton) {
+                    tabButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log(`Tab button clicked: ${tabName}`);
+                        showTab(tabName);
+                    });
+                }
             });
         });
     </script>

@@ -480,12 +480,12 @@
 let currentAssignments = <?= json_encode($assignments ?? []) ?>;
 let currentDeleteAssignmentId = null;
 
-// Initialize assignments display
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize assignments display - called from dashboard
+function initializeAssignments() {
     loadAssignments();
     loadAssignmentStats();
     setupAssignmentEventListeners();
-});
+}
 
 // Setup event listeners
 function setupAssignmentEventListeners() {

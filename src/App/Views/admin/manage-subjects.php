@@ -244,11 +244,11 @@
 let currentSubjects = <?= json_encode($subjects) ?>;
 let currentDeleteSubjectId = null;
 
-// Initialize subjects display
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize subjects display - called from dashboard
+function initializeSubjects() {
     loadSubjects();
     setupEventListeners();
-});
+}
 
 // Setup event listeners
 function setupEventListeners() {

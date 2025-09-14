@@ -299,8 +299,8 @@ function showAddFacultyModal() {
     document.getElementById('addFacultyModal').classList.remove('hidden');
 }
 
-// Year-Section Tab Switching
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize users functionality - called from dashboard
+function initializeUsers() {
     const yearSectionTabs = document.querySelectorAll('.year-section-tab');
     const studentSections = document.querySelectorAll('.student-section');
 
@@ -327,11 +327,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-         // Show first section by default
-     if (yearSectionTabs.length > 0) {
-         yearSectionTabs[0].click();
-     }
- });
+    // Show first section by default
+    if (yearSectionTabs.length > 0) {
+        yearSectionTabs[0].click();
+    }
+    
+    // Setup modal listeners
+    setupUserModalListeners();
+    setupAddStudentModalListeners();
+    setupEditFacultyModalListeners();
+    setupAddFacultyModalListeners();
+}
  </script>
 
 <!-- Delete Student Confirmation Modal -->
@@ -482,15 +488,17 @@ function submitEditForm() {
     }
 }
 
-// Close edit modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
+// Close edit modal when clicking outside - called from dashboard
+function setupUserModalListeners() {
     const editModal = document.getElementById('editStudentModal');
-    editModal.addEventListener('click', function(e) {
-        if (e.target === editModal) {
-            closeModal('editStudentModal');
-        }
-    });
-});
+    if (editModal) {
+        editModal.addEventListener('click', function(e) {
+            if (e.target === editModal) {
+                closeModal('editStudentModal');
+            }
+        });
+    }
+}
 </script>
 
 <!-- Add Student Modal -->
@@ -597,15 +605,17 @@ function submitForm() {
     }
 }
 
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
+// Close modal when clicking outside - called from dashboard
+function setupAddStudentModalListeners() {
     const modal = document.getElementById('addStudentModal');
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal('addStudentModal');
-        }
-    });
-});
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal('addStudentModal');
+            }
+        });
+    }
+}
 
 // Delete confirmation functions
 function hideDeleteStudentModal() {
@@ -720,15 +730,17 @@ function submitEditFacultyForm() {
     }
 }
 
-// Close edit faculty modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
+// Close edit faculty modal when clicking outside - called from dashboard
+function setupEditFacultyModalListeners() {
     const editFacultyModal = document.getElementById('editFacultyModal');
-    editFacultyModal.addEventListener('click', function(e) {
-        if (e.target === editFacultyModal) {
-            closeModal('editFacultyModal');
-        }
-    });
-});
+    if (editFacultyModal) {
+        editFacultyModal.addEventListener('click', function(e) {
+            if (e.target === editFacultyModal) {
+                closeModal('editFacultyModal');
+            }
+        });
+    }
+}
 </script>
 
 <!-- Add Faculty Modal -->
@@ -813,13 +825,15 @@ function submitFacultyForm() {
     }
 }
 
-// Close faculty modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
+// Close faculty modal when clicking outside - called from dashboard
+function setupAddFacultyModalListeners() {
     const modal = document.getElementById('addFacultyModal');
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            closeModal('addFacultyModal');
-        }
-    });
-});
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal('addFacultyModal');
+            }
+        });
+    }
+}
 </script>
