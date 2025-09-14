@@ -78,7 +78,7 @@
                     <i class="fas fa-search mr-2"></i>
                     Search Assignments
                 </label>
-                <input type="text" id="assignmentSearch" placeholder="Search by subject, faculty, or notes..." 
+                <input type="text" id="assignmentSearch" placeholder="Search assignments..." 
                        class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
             </div>
             

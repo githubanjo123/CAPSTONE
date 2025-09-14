@@ -17,58 +17,6 @@
     </div>
 </div>
 
-<!-- Search and Filter Section -->
-<div class="mb-8">
-    <div class="bg-grey-50 p-6 rounded-lg border border-grey-200">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Search -->
-            <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">
-                    <i class="fas fa-search mr-2"></i>
-                    Search Subjects
-                </label>
-                <input type="text" id="subjectSearch" placeholder="Search by code, name, or description..." 
-                       class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-            </div>
-            
-            <!-- Year Level Filter -->
-            <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">
-                    <i class="fas fa-filter mr-2"></i>
-                    Year Level
-                </label>
-                <select id="yearLevelFilter" class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">All Year Levels</option>
-                    <?php foreach ($yearLevels as $key => $value): ?>
-                        <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($value) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <!-- Semester Filter -->
-            <div>
-                <label class="block text-sm font-medium text-grey-700 mb-2">
-                    <i class="fas fa-calendar mr-2"></i>
-                    Semester
-                </label>
-                <select id="semesterFilter" class="w-full px-4 py-2 border border-grey-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">All Semesters</option>
-                    <?php foreach ($semesters as $key => $value): ?>
-                        <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($value) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <!-- Clear Filters -->
-            <div class="flex items-end">
-                <button onclick="clearFilters()" class="w-full bg-grey-500 hover:bg-grey-600 text-white px-4 py-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-times mr-2"></i>
-                    Clear Filters
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Subjects Section - Organized by Year & Semester -->
 <div class="mb-8">
@@ -304,20 +252,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Search functionality
-    document.getElementById('subjectSearch').addEventListener('input', function() {
-        filterSubjects();
-    });
-    
-    // Filter functionality
-    document.getElementById('yearLevelFilter').addEventListener('change', function() {
-        filterSubjects();
-    });
-    
-    document.getElementById('semesterFilter').addEventListener('change', function() {
-        filterSubjects();
-    });
-    
     // Form submissions
     document.getElementById('addSubjectForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -472,75 +406,6 @@ function showYearSemesterSection(sectionId) {
     activeTab.classList.add('active');
 }
 
-// Filter subjects
-function filterSubjects() {
-    const searchTerm = document.getElementById('subjectSearch').value.toLowerCase();
-    const yearLevel = document.getElementById('yearLevelFilter').value;
-    const semester = document.getElementById('semesterFilter').value;
-    
-    let filteredSubjects = currentSubjects.filter(subject => {
-        const matchesSearch = !searchTerm || 
-            subject.subject_code.toLowerCase().includes(searchTerm) ||
-            subject.subject_name.toLowerCase().includes(searchTerm) ||
-            (subject.description && subject.description.toLowerCase().includes(searchTerm));
-        
-        const matchesYearLevel = !yearLevel || subject.year_level === yearLevel;
-        const matchesSemester = !semester || subject.semester === semester;
-        
-        return matchesSearch && matchesYearLevel && matchesSemester;
-    });
-    
-    // Update display with filtered subjects
-    const yearSemesterGroups = groupSubjectsByYearSemester(filteredSubjects);
-    
-    // Update tabs
-    const tabsContainer = document.getElementById('yearSemesterTabs');
-    tabsContainer.innerHTML = '';
-    
-    let firstTab = true;
-    Object.keys(yearSemesterGroups).forEach(yearSemester => {
-        const count = yearSemesterGroups[yearSemester].length;
-        const tabId = 'tab-' + yearSemester.replace(/\s+/g, '-').toLowerCase();
-        
-        const tab = document.createElement('button');
-        tab.className = `year-semester-tab ${firstTab ? 'active' : ''} bg-grey-100 border border-grey-300 text-grey-600 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 hover:bg-primary-600 hover:text-white hover:border-primary-600`;
-        tab.setAttribute('data-section', tabId);
-        tab.innerHTML = `${yearSemester} <span class="bg-green-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center text-xs font-bold ml-2">${count}</span>`;
-        
-        tab.addEventListener('click', function() {
-            showYearSemesterSection(tabId);
-        });
-        
-        tabsContainer.appendChild(tab);
-        firstTab = false;
-    });
-    
-    // Update content
-    const contentContainer = document.getElementById('subjectsContent');
-    contentContainer.innerHTML = '';
-    
-    let firstSection = true;
-    Object.keys(yearSemesterGroups).forEach(yearSemester => {
-        const subjects = yearSemesterGroups[yearSemester];
-        const sectionId = 'tab-' + yearSemester.replace(/\s+/g, '-').toLowerCase();
-        
-        const section = document.createElement('div');
-        section.className = `year-semester-section ${firstSection ? 'active' : ''} ${!firstSection ? 'hidden' : ''}`;
-        section.id = sectionId;
-        
-        section.innerHTML = generateSubjectsSectionHTML(yearSemester, subjects);
-        contentContainer.appendChild(section);
-        firstSection = false;
-    });
-}
-
-// Clear filters
-function clearFilters() {
-    document.getElementById('subjectSearch').value = '';
-    document.getElementById('yearLevelFilter').value = '';
-    document.getElementById('semesterFilter').value = '';
-    loadSubjects();
-}
 
 // Modal functions
 function showAddSubjectModal() {
