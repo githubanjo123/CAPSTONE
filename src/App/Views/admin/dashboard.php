@@ -141,22 +141,7 @@
 
             <!-- Tab 2: Manage Subjects -->
             <div id="subjects" class="tab-content hidden">
-                <div class="text-center py-12">
-                    <i class="fas fa-book text-6xl text-grey-400 mb-4"></i>
-                    <h4 class="text-xl font-semibold text-grey-700 mb-2">Manage Subjects</h4>
-                    <p class="text-grey-500">Subject management system is ready!</p>
-                    <div class="mt-4">
-                        <p class="text-sm text-grey-600 mb-2">Available variables:</p>
-                        <ul class="text-xs text-grey-500 text-left max-w-md mx-auto">
-                            <li>• Subjects: <?= isset($subjects) ? count($subjects) : 'Not set' ?></li>
-                            <li>• Year Levels: <?= isset($yearLevels) ? count($yearLevels) : 'Not set' ?></li>
-                            <li>• Semesters: <?= isset($semesters) ? count($semesters) : 'Not set' ?></li>
-                        </ul>
-                    </div>
-                    <button onclick="alert('Subject system is ready! Check console for debug info.')" class="mt-4 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg">
-                        Test Subject System
-                    </button>
-                </div>
+                <?php include 'manage-subjects.php'; ?>
             </div>
 
             <!-- Tab 3: Subject Assignments -->
