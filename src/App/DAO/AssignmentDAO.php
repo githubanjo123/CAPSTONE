@@ -4,9 +4,10 @@ namespace App\DAO;
 
 use App\Models\SubjectAssignment;
 use App\Config\Database;
+use App\Interfaces\AssignmentDAOInterface;
 use PDO;
 
-class AssignmentDAO
+class AssignmentDAO implements AssignmentDAOInterface
 {
     private $db;
 

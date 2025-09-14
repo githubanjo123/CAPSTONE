@@ -120,7 +120,8 @@ class AssignmentController
 
         $filters = $_GET;
         $assignments = $this->assignmentService->getAssignmentsByFilters($filters);
-        $this->showSuccess($assignments);
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        $this->showSuccess($assignmentsArray);
     }
 
     /**
@@ -142,7 +143,8 @@ class AssignmentController
         }
 
         $workload = $this->assignmentService->getFacultyWorkload($facultyId, $academicYear);
-        $this->showSuccess($workload);
+        $workloadArray = $this->assignmentService->assignmentsToArray($workload);
+        $this->showSuccess($workloadArray);
     }
 
     /**
@@ -173,7 +175,8 @@ class AssignmentController
         }
 
         $assignments = $this->assignmentService->getAllAssignments();
-        $this->showSuccess($assignments);
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        $this->showSuccess($assignmentsArray);
     }
 
     /**

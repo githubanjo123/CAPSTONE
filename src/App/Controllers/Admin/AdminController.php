@@ -51,12 +51,15 @@ class AdminController
         $studentsArray = $this->userService->usersToArray($students);
         $facultyArray = $this->userService->usersToArray($faculty);
         
+        // Convert Assignment objects to arrays for view compatibility
+        $assignmentsArray = $this->assignmentService->assignmentsToArray($assignments);
+        
         $data = [
             'admin' => $currentUser, // Already an array from AuthService
             'students' => $studentsArray,
             'faculty' => $facultyArray,
             'subjects' => $subjects,
-            'assignments' => $assignments,
+            'assignments' => $assignmentsArray,
             'yearSections' => $this->getYearSections($studentsArray),
             'yearLevels' => $this->subjectService->getYearLevels(),
             'semesters' => $this->subjectService->getSemesters(),

@@ -6,8 +6,9 @@ use App\DAO\AssignmentDAO;
 use App\DAO\SubjectDAO;
 use App\DAO\Auth\UserDAO;
 use App\Models\SubjectAssignment;
+use App\Interfaces\AssignmentServiceInterface;
 
-class AssignmentService
+class AssignmentService implements AssignmentServiceInterface
 {
     private $assignmentDAO;
     private $subjectDAO;

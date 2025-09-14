@@ -15,6 +15,11 @@ class SubjectAssignment
     private $notes;
     private $createdAt;
     private $updatedAt;
+    
+    // Additional fields from joins
+    private $subjectCode;
+    private $subjectName;
+    private $facultyName;
 
     public function __construct(array $data = [])
     {
@@ -29,6 +34,11 @@ class SubjectAssignment
         $this->notes = $data['notes'] ?? '';
         $this->createdAt = $data['created_at'] ?? null;
         $this->updatedAt = $data['updated_at'] ?? null;
+        
+        // Additional fields from joins
+        $this->subjectCode = $data['subject_code'] ?? '';
+        $this->subjectName = $data['subject_name'] ?? '';
+        $this->facultyName = $data['faculty_name'] ?? '';
     }
 
     // Getters
@@ -43,6 +53,11 @@ class SubjectAssignment
     public function getNotes() { return $this->notes; }
     public function getCreatedAt() { return $this->createdAt; }
     public function getUpdatedAt() { return $this->updatedAt; }
+    
+    // Additional field getters
+    public function getSubjectCode() { return $this->subjectCode; }
+    public function getSubjectName() { return $this->subjectName; }
+    public function getFacultyName() { return $this->facultyName; }
 
     // Setters
     public function setId($id) { $this->id = $id; }
@@ -54,6 +69,11 @@ class SubjectAssignment
     public function setSemester($semester) { $this->semester = $semester; }
     public function setStatus($status) { $this->status = $status; }
     public function setNotes($notes) { $this->notes = $notes; }
+    
+    // Additional field setters
+    public function setSubjectCode($subjectCode) { $this->subjectCode = $subjectCode; }
+    public function setSubjectName($subjectName) { $this->subjectName = $subjectName; }
+    public function setFacultyName($facultyName) { $this->facultyName = $facultyName; }
 
     /**
      * Convert to array
@@ -71,7 +91,10 @@ class SubjectAssignment
             'status' => $this->status,
             'notes' => $this->notes,
             'created_at' => $this->createdAt,
-            'updated_at' => $this->updatedAt
+            'updated_at' => $this->updatedAt,
+            'subject_code' => $this->subjectCode,
+            'subject_name' => $this->subjectName,
+            'faculty_name' => $this->facultyName
         ];
     }
 
