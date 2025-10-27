@@ -4,21 +4,29 @@ namespace App\Controllers\Admin;
 
 use App\Services\Auth\AuthService;
 use App\Services\User\UserService;
+use App\Services\Subject\SubjectService;
+use App\Services\Assignment\AssignmentService;
 use App\Core\View;
 
 class AdminController
 {
     private $authService;
     private $userService;
+    private $subjectService;
+    private $assignmentService;
     private $view;
 
     public function __construct(
         AuthService $authService = null,
         UserService $userService = null,
+        SubjectService $subjectService = null,
+        AssignmentService $assignmentService = null,
         View $view = null
     ) {
         $this->authService = $authService ?? new AuthService();
         $this->userService = $userService ?? new UserService();
+        $this->subjectService = $subjectService ?? new SubjectService();
+        $this->assignmentService = $assignmentService ?? new AssignmentService();
         $this->view = $view ?? new View();
         
         // Ensure user is authenticated and is admin
@@ -36,6 +44,8 @@ class AdminController
         // Get real data from database
         $students = $this->userService->getUsersByRole('student');
         $faculty = $this->userService->getUsersByRole('faculty');
+        $subjects = $this->subjectService->getAllSubjects();
+        $assignments = $this->assignmentService->getAllAssignments();
         
         // Convert User objects to arrays for view compatibility
         $studentsArray = $this->userService->usersToArray($students);
@@ -45,7 +55,16 @@ class AdminController
             'admin' => $currentUser, // Already an array from AuthService
             'students' => $studentsArray,
             'faculty' => $facultyArray,
-            'yearSections' => $this->getYearSections($studentsArray)
+            'subjects' => $subjects,
+            'assignments' => $assignments,
+            'yearSections' => $this->getYearSections($studentsArray),
+            'yearLevels' => $this->subjectService->getYearLevels(),
+            'semesters' => $this->subjectService->getSemesters(),
+            'assignmentYearLevels' => $this->assignmentService->getYearLevels(),
+            'assignmentSections' => $this->assignmentService->getSections(),
+            'academicYears' => $this->assignmentService->getAcademicYears(),
+            'assignmentSemesters' => $this->assignmentService->getSemesters(),
+            'assignmentStatuses' => $this->assignmentService->getAssignmentStatuses()
         ];
         
         $this->view->display('admin.dashboard', $data);
@@ -70,95 +89,15 @@ class AdminController
         $logoutUrl = $basePath . '/admin/logout?confirm=true';
         $dashboardUrl = $basePath . '/admin/dashboard';
 
-        echo '<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Confirm Logout - Admin Panel</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        </head>
-        <body class="bg-light">
-            <div class="container mt-5">
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="card shadow">
-                            <div class="card-body text-center">
-                                <i class="fas fa-sign-out-alt fa-3x text-warning mb-3"></i>
-                                <h4 class="card-title">Confirm Logout</h4>
-                                <p class="card-text">Are you sure you want to logout from the admin panel?</p>
-                                <div class="d-flex justify-content-center gap-3">
-                                    <a href="' . $logoutUrl . '" class="btn btn-danger">
-                                        <i class="fas fa-check mr-2"></i>Yes, Logout
-                                    </a>
-                                    <a href="' . $dashboardUrl . '" class="btn btn-secondary">
-                                        <i class="fas fa-times mr-2"></i>Cancel
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>';
+        $data = [
+            'logoutUrl' => $logoutUrl,
+            'dashboardUrl' => $dashboardUrl
+        ];
+
+        $this->view->display('admin.logout-confirmation', $data);
     }
 
-    /**
-     * Show logout confirmation page
-     */
-    private function showLogoutConfirmation()
-    {
-        $scriptName = $_SERVER['SCRIPT_NAME'];
-        $basePath = dirname($scriptName);
-        $logoutUrl = $basePath . '/admin/logout?confirm=true';
-        $dashboardUrl = $basePath . '/admin/dashboard';
-        
-        echo '<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Confirm Logout - Admin Dashboard</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        </head>
-        <body class="bg-light">
-            <div class="container mt-5">
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="card shadow">
-                            <div class="card-header bg-warning text-white">
-                                <h4 class="mb-0">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Confirm Logout
-                                </h4>
-                            </div>
-                            <div class="card-body text-center">
-                                <i class="fas fa-sign-out-alt fa-3x text-warning mb-3"></i>
-                                <h5>Are you sure you want to logout?</h5>
-                                <p class="text-muted">You will be redirected to the login page.</p>
-                                
-                                <div class="mt-4">
-                                    <a href="' . $logoutUrl . '" class="btn btn-warning me-2">
-                                        <i class="fas fa-sign-out-alt me-2"></i>
-                                        Yes, Logout
-                                    </a>
-                                    <a href="' . $dashboardUrl . '" class="btn btn-secondary">
-                                        <i class="fas fa-times me-2"></i>
-                                        Cancel
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </body>
-        </html>';
-        return;
-    }
+
 
 
 

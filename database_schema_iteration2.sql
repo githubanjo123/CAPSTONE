@@ -167,3 +167,51 @@ INSERT INTO `subject_faculty` (`subject_id`, `faculty_id`) VALUES
 (3, 2)  -- ENG101 assigned to Dr. John Smith
 ON DUPLICATE KEY UPDATE 
     `updated_at` = CURRENT_TIMESTAMP;
+
+-- ================================================================
+-- STEP 6: Enhanced Subject Assignments System
+-- ================================================================
+
+-- 6.1 Enhanced subject assignments table (replaces subject_faculty)
+CREATE TABLE IF NOT EXISTS `subject_assignments` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT,
+    `subject_id` INT(11) NOT NULL,
+    `faculty_id` INT(11) NOT NULL,
+    `year_level` VARCHAR(20) NOT NULL,
+    `section` VARCHAR(10) NOT NULL,
+    `academic_year` VARCHAR(10) NOT NULL,
+    `semester` VARCHAR(20) NOT NULL,
+    `status` ENUM('active', 'inactive', 'pending') DEFAULT 'active',
+    `notes` TEXT,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_assignment` (
+        `subject_id`, 
+        `year_level`, 
+        `section`, 
+        `academic_year`, 
+        `semester`
+    ),
+    INDEX `idx_faculty_year` (`faculty_id`, `academic_year`),
+    INDEX `idx_subject_year` (`subject_id`, `academic_year`),
+    INDEX `idx_year_section` (`year_level`, `section`, `academic_year`),
+    CONSTRAINT `fk_subject_assignments_subject` FOREIGN KEY (`subject_id`) REFERENCES `subjects`(`subject_id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_subject_assignments_faculty` FOREIGN KEY (`faculty_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- 6.2 Sample enhanced assignments data
+INSERT INTO `subject_assignments` (`subject_id`, `faculty_id`, `year_level`, `section`, `academic_year`, `semester`, `status`, `notes`) VALUES
+(1, 2, '1st Year', 'A', '2024-2025', '1st Semester', 'active', 'Primary instructor for Section A'),
+(1, 3, '1st Year', 'B', '2024-2025', '1st Semester', 'active', 'Primary instructor for Section B'),
+(2, 3, '1st Year', 'A', '2024-2025', '1st Semester', 'active', 'Mathematics instructor'),
+(2, 2, '1st Year', 'B', '2024-2025', '1st Semester', 'active', 'Mathematics instructor'),
+(3, 2, '1st Year', 'A', '2024-2025', '1st Semester', 'active', 'English communication instructor'),
+(3, 3, '1st Year', 'B', '2024-2025', '1st Semester', 'active', 'English communication instructor'),
+(1, 2, '2nd Year', 'A', '2024-2025', '1st Semester', 'active', 'Advanced CS for 2nd year'),
+(2, 3, '2nd Year', 'A', '2024-2025', '1st Semester', 'active', 'Advanced Math for 2nd year')
+ON DUPLICATE KEY UPDATE 
+    `faculty_id` = VALUES(`faculty_id`),
+    `status` = VALUES(`status`),
+    `notes` = VALUES(`notes`),
+    `updated_at` = CURRENT_TIMESTAMP;
