@@ -1,28 +1,53 @@
-<!-- Top Section - Add User Actions -->
+<!-- User Management Sub-tabs -->
 <div class="mb-8">
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center mb-6">
         <div>
-            <h4 class="text-xl font-semibold text-grey-800 mb-1">
-                <i class="fas fa-user-plus mr-2 text-primary-600"></i>
-                Add New Users
+            <h4 class="text-2xl font-bold text-primary-600 mb-2">
+                <i class="fas fa-users mr-3"></i>
+                User Management
             </h4>
-            <p class="text-grey-600">Add students and faculty to the system</p>
+            <p class="text-lg text-secondary-600">Manage students and faculty members</p>
         </div>
-        <div class="flex space-x-3">
-            <button class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1" onclick="showAddStudentModal()">
-                <i class="fas fa-plus mr-2"></i>
-                Add Student
+    </div>
+    
+    <!-- Sub-tab Navigation -->
+    <div class="border-b-2 border-secondary-200 mb-6">
+        <div class="flex space-x-1">
+            <button class="bg-accent-500 text-primary-600 font-semibold px-6 py-4 rounded-t-lg border-b-2 border-primary-600 hover:bg-accent-600 transition-all duration-300 text-lg" id="students-subtab" onclick="showUserSubTab('students')">
+                <i class="fas fa-graduation-cap mr-2"></i>
+                Students
             </button>
-            <button class="bg-transparent border-2 border-grey-500 text-grey-600 hover:bg-grey-500 hover:text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300" onclick="showAddFacultyModal()">
-                <i class="fas fa-plus mr-2"></i>
-                Add Faculty
+            <button class="text-secondary-600 font-semibold px-6 py-4 rounded-t-lg hover:bg-accent-500 hover:text-primary-600 transition-all duration-300 text-lg" id="faculty-subtab" onclick="showUserSubTab('faculty')">
+                <i class="fas fa-chalkboard-teacher mr-2"></i>
+                Faculty
             </button>
         </div>
     </div>
 </div>
 
-<!-- Students Section - Organized by Year & Section -->
-<div class="mb-8">
+<!-- Students Sub-tab Content -->
+<div id="students-content" class="user-subtab-content">
+    <!-- Add Student Actions -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h5 class="text-xl font-semibold text-primary-600 mb-2">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Add New Student
+                </h5>
+                <p class="text-secondary-600">Add a new student to the system</p>
+            </div>
+            <div>
+                <button class="bg-primary-600 hover:bg-primary-700 text-accent-500 px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1 text-lg" onclick="showAddStudentModal()">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Student
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Section - Organized by Year & Section -->
+    <div class="mb-8">
     <h5 class="text-lg font-semibold text-grey-800 mb-4">
         <i class="fas fa-graduation-cap mr-2 text-primary-600"></i>
         Students by Year & Section
@@ -74,7 +99,12 @@
 
             <!-- Student Cards -->
             <?php foreach ($sectionStudents as $student): ?>
-                <div class="bg-white border border-grey-200 rounded-lg p-6 mb-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                <div class="bg-accent-500 border border-secondary-200 rounded-lg p-6 mb-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1" 
+                     data-student-id="<?= $student['user_id'] ?>"
+                     data-school-id="<?= htmlspecialchars($student['school_id']) ?>"
+                     data-full-name="<?= htmlspecialchars($student['full_name']) ?>"
+                     data-year-level="<?= htmlspecialchars($student['year_level']) ?>"
+                     data-section="<?= htmlspecialchars($student['section']) ?>">
                     <div class="flex justify-between items-center">
                         <div class="flex-1">
                             <div class="text-lg font-bold text-primary-600 mb-2">
@@ -108,10 +138,32 @@
         $firstSection = false;
     endforeach; 
     ?>
+    </div>
 </div>
 
-<!-- Faculty Section -->
-<div class="mt-12">
+<!-- Faculty Sub-tab Content -->
+<div id="faculty-content" class="user-subtab-content hidden">
+    <!-- Add Faculty Actions -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h5 class="text-xl font-semibold text-primary-600 mb-2">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Add New Faculty
+                </h5>
+                <p class="text-secondary-600">Add a new faculty member to the system</p>
+            </div>
+            <div>
+                <button class="bg-primary-600 hover:bg-primary-700 text-accent-500 px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:-translate-y-1 text-lg" onclick="showAddFacultyModal()">
+                    <i class="fas fa-plus mr-2"></i>
+                    Add Faculty
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Faculty Section -->
+    <div class="mt-8">
     <h5 class="text-lg font-semibold text-grey-800 mb-4">
         <i class="fas fa-chalkboard-teacher mr-2 text-primary-600"></i>
         Faculty Members
@@ -162,15 +214,76 @@
             </div>
         </div>
     <?php endforeach; ?>
+    </div>
 </div>
 
 <script>
+// User Sub-tab Switching
+function showUserSubTab(tabName) {
+    // Hide all sub-tab contents
+    document.querySelectorAll('.user-subtab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    
+    // Remove active class from all sub-tabs
+    document.querySelectorAll('[id$="-subtab"]').forEach(tab => {
+        tab.classList.remove('bg-accent-500', 'text-primary-600', 'border-primary-600');
+        tab.classList.add('text-secondary-600');
+    });
+    
+    // Show selected sub-tab content
+    const tabContent = document.getElementById(tabName + '-content');
+    if (tabContent) {
+        tabContent.classList.remove('hidden');
+    }
+    
+    // Add active class to selected sub-tab
+    const activeTab = document.getElementById(tabName + '-subtab');
+    if (activeTab) {
+        activeTab.classList.remove('text-secondary-600');
+        activeTab.classList.add('bg-accent-500', 'text-primary-600', 'border-primary-600');
+    }
+}
+
 // Edit Student Function
 function editStudent(studentId) {
-    // TODO: Fetch student data and populate form
     console.log('Edit student:', studentId);
-    // For now, show a simple form
-    showEditStudentModal(studentId);
+    
+    // Find the student data from the current page data
+    const studentData = findStudentData(studentId);
+    if (studentData) {
+        populateEditForm(studentData);
+        showEditStudentModal(studentId);
+    } else {
+        // Fallback: show modal without pre-populated data
+        showEditStudentModal(studentId);
+    }
+}
+
+// Find student data from the page
+function findStudentData(studentId) {
+    // Find the student card with the matching ID
+    const studentCard = document.querySelector(`[data-student-id="${studentId}"]`);
+    if (studentCard) {
+        return {
+            school_id: studentCard.getAttribute('data-school-id'),
+            full_name: studentCard.getAttribute('data-full-name'),
+            year_level: studentCard.getAttribute('data-year-level'),
+            section: studentCard.getAttribute('data-section')
+        };
+    }
+    console.log('Student data not found for ID:', studentId);
+    return null;
+}
+
+// Populate edit form with student data
+function populateEditForm(studentData) {
+    if (studentData) {
+        document.getElementById('edit_school_id').value = studentData.school_id || '';
+        document.getElementById('edit_full_name').value = studentData.full_name || '';
+        document.getElementById('edit_year_level').value = studentData.year_level || '';
+        document.getElementById('edit_section').value = studentData.section || '';
+    }
 }
 
 // Show Edit Student Modal
@@ -181,21 +294,16 @@ function showEditStudentModal(studentId) {
 
 // Delete Student Function
 function deleteStudent(studentId) {
-    if (confirm('Are you sure you want to delete this student?')) {
-        // Create and submit delete form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/delete-student';
-        
-        const userIdInput = document.createElement('input');
-        userIdInput.type = 'hidden';
-        userIdInput.name = 'user_id';
-        userIdInput.value = studentId;
-        
-        form.appendChild(userIdInput);
-        document.body.appendChild(form);
-        form.submit();
-    }
+    // Get student name for confirmation
+    const studentCard = document.querySelector(`[data-student-id="${studentId}"]`);
+    const studentName = studentCard ? studentCard.getAttribute('data-full-name') : 'this student';
+    
+    // Set the student ID for deletion
+    document.getElementById('deleteStudentId').value = studentId;
+    document.getElementById('deleteStudentName').textContent = studentName;
+    
+    // Show the delete confirmation modal
+    document.getElementById('deleteStudentModal').classList.remove('hidden');
 }
 
 // Edit Faculty Function
@@ -249,6 +357,30 @@ function resetForm(formId) {
 // Add Faculty Modal
 function showAddFacultyModal() {
     document.getElementById('addFacultyModal').classList.remove('hidden');
+}
+
+// Confirm Delete Student Function
+function confirmDeleteStudent() {
+    const studentId = document.getElementById('deleteStudentId').value;
+    
+    // Create and submit delete form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?= dirname($_SERVER['SCRIPT_NAME']) ?>/admin/users/delete-student';
+    
+    const userIdInput = document.createElement('input');
+    userIdInput.type = 'hidden';
+    userIdInput.name = 'user_id';
+    userIdInput.value = studentId;
+    
+    form.appendChild(userIdInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Cancel Delete Student Function
+function cancelDeleteStudent() {
+    document.getElementById('deleteStudentModal').classList.add('hidden');
 }
 
 // Year-Section Tab Switching
@@ -392,17 +524,14 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Add Student Modal -->
-<div id="addStudentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+<div id="addStudentModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-accent-500 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 transform transition-all duration-300">
         <!-- Modal Header -->
-        <div class="flex justify-between items-center p-6 border-b border-grey-200">
-            <h3 class="text-xl font-semibold text-grey-800">
-                <i class="fas fa-user-plus mr-2 text-primary-600"></i>
+        <div class="p-6 border-b border-secondary-200">
+            <h3 class="text-2xl font-bold text-primary-600 text-center">
+                <i class="fas fa-user-plus mr-3"></i>
                 Add New Student
             </h3>
-            <button onclick="closeModal('addStudentModal')" class="text-grey-400 hover:text-grey-600 transition-colors">
-                <i class="fas fa-times text-xl"></i>
-            </button>
         </div>
 
         <!-- Modal Body -->
@@ -459,14 +588,14 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         <!-- Modal Footer -->
-        <div class="flex justify-end space-x-3 p-6 border-t border-grey-200">
+        <div class="flex justify-center space-x-4 p-6 border-t border-secondary-200">
             <button onclick="closeModal('addStudentModal')" 
-                    class="px-4 py-2 text-grey-600 bg-grey-100 hover:bg-grey-200 rounded-lg transition-colors">
+                    class="px-8 py-3 bg-red-500 hover:bg-red-600 text-accent-500 font-semibold rounded-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg text-lg">
                 <i class="fas fa-times mr-2"></i>
                 Cancel
             </button>
             <button onclick="submitForm()" 
-                    class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-colors">
+                    class="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-accent-500 font-semibold rounded-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg text-lg">
                 <i class="fas fa-save mr-2"></i>
                 Add Student
             </button>
@@ -679,5 +808,48 @@ document.addEventListener('DOMContentLoaded', function() {
             closeModal('addFacultyModal');
         }
     });
+});
+</script>
+
+<!-- Delete Student Confirmation Modal -->
+<div id="deleteStudentModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-accent-500 rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 transform transition-all duration-300">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-600"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-primary-600 mb-4">Confirm Deletion</h3>
+            <p class="text-lg text-secondary-600 mb-2">Are you sure you want to delete</p>
+            <p class="text-xl font-semibold text-primary-600 mb-8" id="deleteStudentName">this student</p>
+            
+            <div class="flex space-x-4">
+                <button onclick="cancelDeleteStudent()" 
+                        class="flex-1 bg-secondary-500 hover:bg-secondary-600 text-accent-500 font-semibold py-3 px-6 rounded-lg transition-all duration-300">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancel
+                </button>
+                <button onclick="confirmDeleteStudent()" 
+                        class="flex-1 bg-red-500 hover:bg-red-600 text-accent-500 font-semibold py-3 px-6 rounded-lg transition-all duration-300">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Close delete modal when clicking outside
+document.getElementById('deleteStudentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        cancelDeleteStudent();
+    }
+});
+
+// Close delete modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('deleteStudentModal').classList.contains('hidden')) {
+        cancelDeleteStudent();
+    }
 });
 </script>
